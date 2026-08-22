@@ -21,7 +21,7 @@ spec:
         runAsGroup: 65532
       containers:
         - name: lumitree
-          image: ghcr.io/aobaiwaki123/lumitree:latest
+          image: ghcr.io/aobaiwaki123/lumitree:v1.1.0
           imagePullPolicy: IfNotPresent
           args: ["serve", "--port", "8080", "--host", "0.0.0.0"]
           ports:
