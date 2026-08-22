@@ -30,12 +30,12 @@ flowchart LR
   - アーキテクチャ図（Mermaid）の作成 ([docs/architecture.md](docs/architecture.md))
   - 責務境界（TimeTree ↔ lumitree ↔ 下流Bot/Portal/GCal）の合意
   - 設計のトレードオフ（ADR）の明文化
-- [ ] **0-2. OpenAPI 3.0 仕様書の策定 (`api/openapi.yaml`)**
+- [x] **0-2. OpenAPI 3.0 仕様書の策定 (`api/openapi.yaml`)**
   - 正規化された `Calendar`, `Event`, `EventList` スキーマの定義
   - エンドポイント設計 (`GET /api/v1/calendars/{id}`, `GET /api/v1/calendars/{id}/events.ics` 等)
   - エラーレスポンス形式の定義
-- [ ] **0-3. データマッピング仕様の整理**
-  - TimeTree 生レスポンス（ミリ秒タイムスタンプ等）から標準モデルへの変換ルール策定
+- [x] **0-3. データマッピング仕様の整理**
+  - TimeTree 生レスポンス（ミリ秒タイムスタンプ等）から標準モデルへの変換ルール策定 ([spec/mapping.md](spec/mapping.md))
 
 ---
 
