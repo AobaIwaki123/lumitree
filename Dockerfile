@@ -1,17 +1,20 @@
-# Build stage
-FROM golang:1.23-alpine AS builder
+# Build stage (Native Go cross-compilation for ultra-fast multi-arch builds)
+FROM --platform=$BUILDPLATFORM golang:1.23-alpine AS builder
+
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /app
 
 # Cache dependencies
-COPY go.mod ./
+COPY go.mod go.sum* ./
 RUN go mod download
 
-# Copy source code
+# Copy source code (filtered via .dockerignore)
 COPY . .
 
-# Build static binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+# Build static binary for target architecture
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -ldflags="-w -s" \
     -o /lumitree ./cmd/lumitree
 
