@@ -9,32 +9,32 @@
 `lumitree` は、TimeTree 内部 API と各種クライアント（CLI、Google/Apple カレンダー、外部 REST API 消費者）の間を仲介するステートレスなプロキシ・アダプターです。
 
 ```mermaid
-graph TD
-    subgraph "Clients"
+flowchart TD
+    subgraph Clients["Clients"]
         CLI["lumitree CLI (get / ics)"]
         GCAL["Google / Apple Calendar (Webcal)"]
         APP["External Services / Apps"]
     end
 
-    subgraph "lumitree Proxy Server (Kubernetes Pod / Local)"
-        API["HTTP Handler (Go stdlib / net/http)"]
+    subgraph ProxyServer["lumitree Proxy Server (Kubernetes Pod / Local)"]
+        API["HTTP Handler (Go stdlib)"]
         CACHE["In-Memory TTL Cache (pkg/cache)"]
         EXPORTER["iCalendar Exporter (pkg/exporter/ical)"]
         CLIENT["TimeTree HTTP Client (pkg/timetree)"]
     end
 
-    subgraph "External Providers"
+    subgraph External["External Providers"]
         TT["TimeTree Public Web (timetreeapp.com)"]
     end
 
-    CLI -->|"Command Execution"| CLIENT
-    GCAL -->|"GET /api/v1/calendars/{id}/events.ics"| API
-    APP -->|"GET /api/v1/calendars/{id}/events"| API
+    CLI --> CLIENT
+    GCAL --> API
+    APP --> API
 
     API --> EXPORTER
     API --> CACHE
-    CACHE -->|"Cache Miss"| CLIENT
-    CLIENT -->|"Cookie & CSRF Handshake"| TT
+    CACHE --> CLIENT
+    CLIENT --> TT
 ```
 
 ---
@@ -59,30 +59,30 @@ API インターフェースは `api/openapi.yaml` で一元定義され、`oapi
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Dev as "開発者"
-    participant Main as "main ブランチ"
-    participant Stage as "release-stage/vX.Y.Z"
-    participant RelPR as "Release PR (#XX)"
-    participant Rel as "release ブランチ"
-    participant GHCR as "GitHub Packages (GHCR)"
-    participant Argo as "自宅 Kubernetes (ArgoCD)"
+    actor Dev as Developer
+    participant Main as main branch
+    participant Stage as release-stage
+    participant RelPR as Release PR
+    participant Rel as release branch
+    participant GHCR as GHCR
+    participant Argo as ArgoCD
 
-    Dev->>Main: 機能 PR をマージ
-    Main->>Stage: release-pr.yml が起動 (最新タグから次期バージョン vX.Y.Z を計算)
-    Stage->>Stage: マニフェストタグ (k8s/manifests) を vX.Y.Z に自動更新
-    Stage->>RelPR: Release PR を自動起票 / 自動更新 (コンフリクト 0 件)
+    Dev->>Main: Merge feature PR
+    Main->>Stage: Trigger release-pr.yml (Calculate next tag)
+    Stage->>Stage: Auto-bump k8s manifests (vX.Y.Z)
+    Stage->>RelPR: Create or update Release PR
 
-    Note over Dev,RelPR: リリース準備完了 (PR レビュー & 承認)
+    Note over Dev,RelPR: Review and approve release
 
-    Dev->>Rel: Release PR をマージ
-    Rel->>Rel: tag-on-release-merge.yml が起動
-    Rel->>Rel: Git タグ (vX.Y.Z) を自動発行 & GoReleaser でバイナリ配布
-    Rel->>GHCR: コンテナイメージ (ghcr.io/...:vX.Y.Z) を自動 Push
-    Rel->>Stage: 一時ステージングブランチを自動削除
+    Dev->>Rel: Merge Release PR
+    Rel->>Rel: Trigger tag-on-release-merge.yml
+    Rel->>Rel: Publish Git tag and binaries
+    Rel->>GHCR: Push multi-arch container image
+    Rel->>Stage: Auto-delete staging branch
 
-    Note over Argo,Rel: GitOps 自動同期 & ローリングアップデート
-    Argo->>Rel: release ブランチの変更 (vX.Y.Z) を検知
-    Argo->>GHCR: 新規イメージ (vX.Y.Z) を Pull して Pod を無停止更新
+    Note over Argo,Rel: GitOps auto-sync and rolling update
+    Argo->>Rel: Detect release branch updates
+    Argo->>GHCR: Pull new image and restart Pods
 ```
 
 ---
