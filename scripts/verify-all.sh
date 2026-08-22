@@ -42,11 +42,15 @@ echo "OK: All tests passed."
 echo ""
 
 echo "========================================================"
-echo "4. Building all binaries (cmd/lumitree)..."
+echo "4. Building all packages & binaries..."
 echo "========================================================"
 mkdir -p bin
-go build -v -o bin/lumitree ./cmd/lumitree
-echo "OK: Binary build successful."
+if [ -d "cmd" ]; then
+  go build -v -o bin/lumitree ./cmd/...
+else
+  go build -v ./pkg/...
+fi
+echo "OK: Build successful."
 echo ""
 
 echo "========================================================"
