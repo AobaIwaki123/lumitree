@@ -7,6 +7,7 @@
     ":automergeMinor",
     ":automergeDigest"
   ],
+  "baseBranches": ["main"],
   "platformAutomerge": false,
   "automergeType": "pr",
   "prCreation": "immediate",
