@@ -1,0 +1,70 @@
+name: Sync & Update Release PR (main -> release)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-release-pr:
+    name: Create or Update Release PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for unreleased changes
+        id: diff_check
+        run: |
+          git fetch origin release || true
+          UNRELEASED_COMMITS=$(git log origin/release..origin/main --oneline --no-merges || true)
+          if [ -z "$UNRELEASED_COMMITS" ]; then
+            echo "No unreleased commits found between release and main."
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Unreleased commits found:"
+            echo "$UNRELEASED_COMMITS"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or Update Pull Request to release branch
+        if: steps.diff_check.outputs.has_changes == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMITS=$(git log origin/release..origin/main --oneline --no-merges)
+          DATE=$(date +%Y-%m-%d)
+          PR_TITLE="release: sync main to release (${DATE})"
+          PR_BODY="## Release PR: \`main\` -> \`release\`
+
+This PR bundles all changes from \`main\` ready to be promoted to the production \`release\` branch.
+
+### Unreleased Commits:
+\`\`\`
+${COMMITS}
+\`\`\`
+
+### Checklist for Release:
+- [ ] Review all changes above
+- [ ] CI checks on this PR are 100% Green
+- [ ] Merging this PR into \`release\` will trigger production container build and release tagging."
+
+          # Check if PR already exists from main to release
+          EXISTING_PR=$(gh pr list --base release --head main --json number --jq '.[0].number')
+          if [ -n "$EXISTING_PR" ]; then
+            echo "Updating existing Release PR #${EXISTING_PR}..."
+            gh pr edit "$EXISTING_PR" --title "$PR_TITLE" --body "$PR_BODY"
+          else
+            echo "Creating new Release PR from main to release..."
+            gh pr create \
+              --base release \
+              --head main \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY"
+          fi
