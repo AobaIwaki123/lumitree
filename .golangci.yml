@@ -22,10 +22,6 @@ linters-settings:
         disabled: false
 
 issues:
-  exclude-dirs:
-    - pkg/api
-  exclude-files:
-    - ".*\\.gen\\.go$"
   exclude-rules:
     - path: ".*\\.gen\\.go"
       linters:
