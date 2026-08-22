@@ -61,3 +61,11 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up Staging Branch
+        run: |
+          STAGE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          if [[ "$STAGE_BRANCH" == release-stage/* ]]; then
+            echo "Deleting temporary staging branch: ${STAGE_BRANCH}..."
+            git push origin --delete "${STAGE_BRANCH}" || true
+          fi
