@@ -22,17 +22,14 @@ echo "Found unreleased commits:"
 echo "$UNRELEASED_COMMITS"
 echo ""
 
-# Extract merged PR titles (Japanese) from merge commits
-MERGED_PRS=$(git log origin/release..origin/main --merges --oneline | grep -oE '#[0-9]+' | tr -d '#' | sort -u || true)
+# Extract merged PR references (#XX) from merge commits (GitHub native rich preview)
+MERGED_PRS=$(git log origin/release..origin/main --merges --oneline | grep -oE '#[0-9]+' | sort -V -r -u || true)
 RELEASE_NOTES_ITEMS=""
 if [ -n "$MERGED_PRS" ]; then
-  while read -r pr_num; do
-    if [ -n "$pr_num" ]; then
-      PR_LINE=$(gh pr view "$pr_num" --json number,title,author --template '- **#{{.number}}**: {{.title}} (@{{.author.login}})' 2>/dev/null || true)
-      if [ -n "$PR_LINE" ]; then
-        RELEASE_NOTES_ITEMS="${RELEASE_NOTES_ITEMS}
-${PR_LINE}"
-      fi
+  while read -r pr_ref; do
+    if [ -n "$pr_ref" ]; then
+      RELEASE_NOTES_ITEMS="${RELEASE_NOTES_ITEMS}
+- ${pr_ref}"
     fi
   done <<< "$MERGED_PRS"
 fi
