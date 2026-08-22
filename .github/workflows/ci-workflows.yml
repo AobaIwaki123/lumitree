@@ -1,0 +1,33 @@
+name: CI - Workflows
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'feature/**'
+      - 'fix/**'
+      - 'chore/**'
+    paths:
+      - '.github/workflows/**'
+      - '.github/actionlint.yaml'
+  pull_request:
+    branches:
+      - main
+      - release
+    paths:
+      - '.github/workflows/**'
+      - '.github/actionlint.yaml'
+
+jobs:
+  actionlint:
+    name: Actionlint Workflow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        uses: raven-actions/actionlint@v2
+        with:
+          version: latest
