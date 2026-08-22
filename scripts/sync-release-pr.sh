@@ -22,6 +22,25 @@ echo "Found unreleased commits:"
 echo "$UNRELEASED_COMMITS"
 echo ""
 
+# Extract merged PR titles (Japanese) from merge commits
+MERGED_PRS=$(git log origin/release..origin/main --merges --oneline | grep -oE '#[0-9]+' | tr -d '#' | sort -u || true)
+RELEASE_NOTES_ITEMS=""
+if [ -n "$MERGED_PRS" ]; then
+  while read -r pr_num; do
+    if [ -n "$pr_num" ]; then
+      PR_LINE=$(gh pr view "$pr_num" --json number,title,author --template '- **#{{.number}}**: {{.title}} (@{{.author.login}})' 2>/dev/null || true)
+      if [ -n "$PR_LINE" ]; then
+        RELEASE_NOTES_ITEMS="${RELEASE_NOTES_ITEMS}
+${PR_LINE}"
+      fi
+    fi
+  done <<< "$MERGED_PRS"
+fi
+
+if [ -z "$RELEASE_NOTES_ITEMS" ]; then
+  RELEASE_NOTES_ITEMS=$(echo "$UNRELEASED_COMMITS" | sed 's/^/- /')
+fi
+
 DATE=$(date +%Y-%m-%d)
 PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
 CLEAN_VER=$(echo "$PREV_TAG" | sed -E 's/^(lumitree-)?v?//')
@@ -59,10 +78,8 @@ PR_BODY=$(cat <<EOF
 
 本 PR は \`main\` ブランチの開発成果を取りまとめ、マニフェストタグを **${NEXT_TAG}** に更新して本番 \`release\` ブランチへ反映するための Release PR です。
 
-### 変更・コミット一覧
-\`\`\`
-${UNRELEASED_COMMITS}
-\`\`\`
+### 📦 含まれる変更・機能一覧
+${RELEASE_NOTES_ITEMS}
 
 ### リリース後の自動実行項目
 - [ ] 次期 Git リリースタグ (**${NEXT_TAG}**) の自動発行

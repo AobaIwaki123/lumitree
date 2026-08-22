@@ -7,6 +7,14 @@ on:
       - release
     tags:
       - 'v*'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'k8s/**'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/release-pr.yml'
+      - '.github/workflows/tag-on-release-merge.yml'
 
 permissions:
   contents: read
