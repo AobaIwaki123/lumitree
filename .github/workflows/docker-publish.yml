@@ -5,16 +5,15 @@ on:
     branches:
       - main
       - release
+      - 'release-stage/**'
     tags:
       - 'v*'
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'LICENSE'
-      - 'k8s/**'
-      - '.github/workflows/ci.yml'
-      - '.github/workflows/release-pr.yml'
-      - '.github/workflows/tag-on-release-merge.yml'
+    paths:
+      - 'Dockerfile'
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
 
 permissions:
@@ -35,9 +34,14 @@ jobs:
         id: version
         run: |
           git fetch --tags origin || true
-          TAG=$(git tag -l 'v*' | sort -V | tail -n 1)
+          REF_NAME="${{ github.ref_name }}"
+          if [[ "$REF_NAME" == release-stage/* ]]; then
+            TAG="${REF_NAME#release-stage/}"
+          else
+            TAG=$(git tag -l 'v*' | sort -V | tail -n 1)
+          fi
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "Detected latest release tag: ${TAG}"
+          echo "Detected release container tag: ${TAG}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
