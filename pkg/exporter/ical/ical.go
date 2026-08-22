@@ -35,6 +35,18 @@ func Generate(cal *model.Calendar, events []*model.Event) ([]byte, error) {
 	buf.WriteString(fmt.Sprintf("X-WR-CALNAME:%s\r\n", escapeText(calTitle)))
 	buf.WriteString("X-WR-TIMEZONE:Asia/Tokyo\r\n")
 
+	// Standard VTIMEZONE definition for Asia/Tokyo to ensure strict RFC 5545 parser compatibility
+	buf.WriteString("BEGIN:VTIMEZONE\r\n")
+	buf.WriteString("TZID:Asia/Tokyo\r\n")
+	buf.WriteString("X-LIC-LOCATION:Asia/Tokyo\r\n")
+	buf.WriteString("BEGIN:STANDARD\r\n")
+	buf.WriteString("TZOFFSETFROM:+0900\r\n")
+	buf.WriteString("TZOFFSETTO:+0900\r\n")
+	buf.WriteString("TZNAME:JST\r\n")
+	buf.WriteString("DTSTART:19700101T000000\r\n")
+	buf.WriteString("END:STANDARD\r\n")
+	buf.WriteString("END:VTIMEZONE\r\n")
+
 	nowUTC := time.Now().UTC().Format("20060102T150405Z")
 
 	for _, ev := range events {
@@ -64,21 +76,17 @@ func Generate(cal *model.Calendar, events []*model.Event) ([]byte, error) {
 		}
 
 		if ev.AllDay {
-			// All day event: VALUE=DATE:YYYYMMDD, DTEND is next day
+			// All day event: VALUE=DATE:YYYYMMDD, DTEND is exclusive (next day)
 			dtStart := ev.StartAt.Format("20060102")
 			dtEnd := ev.EndAt.AddDate(0, 0, 1).Format("20060102")
 			buf.WriteString(fmt.Sprintf("DTSTART;VALUE=DATE:%s\r\n", dtStart))
 			buf.WriteString(fmt.Sprintf("DTEND;VALUE=DATE:%s\r\n", dtEnd))
 		} else {
-			// Timed event: TZID=Asia/Tokyo:YYYYMMDDTHHMMSS
-			tz := "Asia/Tokyo"
-			if ev.Timezone != "" {
-				tz = ev.Timezone
-			}
-			dtStart := ev.StartAt.Format("20060102T150405")
-			dtEnd := ev.EndAt.Format("20060102T150405")
-			buf.WriteString(fmt.Sprintf("DTSTART;TZID=%s:%s\r\n", tz, dtStart))
-			buf.WriteString(fmt.Sprintf("DTEND;TZID=%s:%s\r\n", tz, dtEnd))
+			// Timed event: output in UTC (Z suffix) for universal multi-platform compatibility
+			dtStartUTC := ev.StartAt.UTC().Format("20060102T150405Z")
+			dtEndUTC := ev.EndAt.UTC().Format("20060102T150405Z")
+			buf.WriteString(fmt.Sprintf("DTSTART:%s\r\n", dtStartUTC))
+			buf.WriteString(fmt.Sprintf("DTEND:%s\r\n", dtEndUTC))
 		}
 
 		buf.WriteString("END:VEVENT\r\n")
