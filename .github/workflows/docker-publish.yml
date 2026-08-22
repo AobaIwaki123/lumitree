@@ -34,9 +34,10 @@ jobs:
       - name: Detect Release Version Tag
         id: version
         run: |
-          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          git fetch --tags origin || true
+          TAG=$(git tag -l 'v*' | sort -V | tail -n 1)
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "Detected version tag: ${TAG}"
+          echo "Detected latest release tag: ${TAG}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
