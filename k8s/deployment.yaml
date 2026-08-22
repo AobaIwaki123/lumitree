@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lumitree
+  labels:
+    app.kubernetes.io/name: lumitree
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: lumitree
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: lumitree
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+      containers:
+        - name: lumitree
+          image: ghcr.io/aobaiwaki123/lumitree:latest
+          imagePullPolicy: IfNotPresent
+          args: ["serve", "--port", "8080", "--host", "0.0.0.0"]
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: LUMITREE_LOG_LEVEL
+              value: "info"
+            - name: LUMITREE_LOG_FORMAT
+              value: "json"
+            - name: LUMITREE_CACHE_TTL
+              value: "10m"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10

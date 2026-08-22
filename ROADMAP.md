@@ -64,13 +64,13 @@ flowchart LR
 ### ☸️ Phase 2: HTTP Server (Proxy/BFF) & 自宅 Kubernetes (k8s) デプロイ
 > **目的**: OpenAPI 準拠の常駐型プロキシサーバーを実装し、自宅 k8s で安定稼働させる。
 
-- [ ] **2-1. コード生成 (`oapi-codegen`) と OpenAPI 準拠 HTTP サーバー**
-  - `api/openapi.yaml` から HTTP ハンドラインターフェースを自動生成
-  - `cmd/lumitree serve` コマンドの実装
-  - **インメモリ TTL キャッシュ**: デフォルト 10 分のキャッシュ（BAN 防止）
-- [ ] **2-2. コンテナ化 & Kubernetes マニフェスト整備**
-  - `Dockerfile`: Multi-stage build (Distroless / Scratch ベースの超軽量コンテナ)
-  - `k8s/` マニフェスト: Deployment (CPU/Mem Limit), Service, Ingress
+- [x] **2-1. OpenAPI 準拠 HTTP サーバーの実装**
+  - \`api/openapi.yaml\` に準拠した HTTP ルーティング (\`pkg/server\`)
+  - \`cmd/lumitree serve\` コマンドの実装（Graceful shutdown 対応）
+  - **インメモリ TTL キャッシュ**: デフォルト 10 分のキャッシュ (\`pkg/cache\`)
+- [x] **2-2. コンテナ化 & Kubernetes マニフェスト整備**
+  - \`Dockerfile\`: Multi-stage build (Distroless ベースの超軽量コンテナ)
+  - \`k8s/\` マニフェスト: Deployment (CPU/Mem Limit), Service, Ingress, Kustomization
 - [ ] **2-3. 自宅 k8s クラスタへのデプロイ & 結合検証**
   - GitOps (ArgoCD) または直接適用によるクラスタデプロイ
   - Google カレンダーからの自動購読同期テスト
