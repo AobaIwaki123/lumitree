@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   tag-and-release:
-    name: Create Release Tag & Notes
+    name: Create Release Tag, Update K8s Manifest & Publish Release
     # Only run if PR was merged into release branch
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
@@ -21,6 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: release
           fetch-depth: 0
 
       - name: Setup Go
@@ -35,7 +36,6 @@ jobs:
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
           echo "Previous tag: ${PREV_TAG}"
-          # Strip 'v' and 'lumitree-v' prefixes
           CLEAN_VER=$(echo "$PREV_TAG" | sed -E 's/^(lumitree-)?v?//')
           MAJOR=$(echo "$CLEAN_VER" | cut -d. -f1)
           MINOR=$(echo "$CLEAN_VER" | cut -d. -f2)
@@ -45,11 +45,25 @@ jobs:
           echo "tag=${NEXT_TAG}" >> "$GITHUB_OUTPUT"
           echo "Calculated next tag: ${NEXT_TAG}"
 
+      - name: Update Kubernetes Kustomize Image Tag to Release Version
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          sed -i.bak -E "s/(newTag: ).*/\1${TAG}/" k8s/manifests/kustomization.yml
+          rm -f k8s/manifests/kustomization.yml.bak
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add k8s/manifests/kustomization.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): bump k8s manifest image tag to ${TAG} [skip ci]"
+            git push origin release
+            echo "Successfully updated and pushed k8s/manifests/kustomization.yml with tag ${TAG}."
+          fi
+
       - name: Create and Push Tag
         run: |
           TAG="${{ steps.version.outputs.tag }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "${TAG}" -m "Release ${TAG}"
           git push origin "${TAG}"
           echo "Successfully pushed tag ${TAG}!"
