@@ -20,7 +20,9 @@ import (
 )
 
 const (
-	DefaultUserAgent   = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+	// DefaultUserAgent is the fallback User-Agent header simulating modern desktop browser.
+	DefaultUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+	// DefaultTimeTreeApp is the required X-TimeTreeA header matching TimeTree web client.
 	DefaultTimeTreeApp = "web/2.1.0/1.0.0"
 )
 

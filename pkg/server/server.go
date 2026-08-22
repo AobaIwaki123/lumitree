@@ -57,7 +57,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/calendars/{calendarId}/events.ics", s.handleGetEventsICS)
 }
 
-func (s *Server) handleHealthz(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	resp := map[string]any{
 		"status":    "ok",
 		"version":   "1.0.0",
