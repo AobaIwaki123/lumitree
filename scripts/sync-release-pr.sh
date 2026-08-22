@@ -51,6 +51,9 @@ MINOR=$(echo "$CLEAN_VER" | cut -d. -f2)
 NEXT_MINOR=$((MINOR + 1))
 NEXT_TAG="v${MAJOR}.${NEXT_MINOR}.0"
 echo "Calculated next release tag: ${NEXT_TAG}"
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  echo "tag=${NEXT_TAG}" >> "$GITHUB_OUTPUT"
+fi
 
 git config user.name "github-actions[bot]" 2>/dev/null || true
 git config user.email "github-actions[bot]@users.noreply.github.com" 2>/dev/null || true
