@@ -35,6 +35,7 @@ if [ -n "$MERGED_PRS" ]; then
 fi
 
 if [ -z "$RELEASE_NOTES_ITEMS" ]; then
+  # shellcheck disable=SC2001
   RELEASE_NOTES_ITEMS=$(echo "$UNRELEASED_COMMITS" | sed 's/^/- /')
 fi
 
