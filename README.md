@@ -11,6 +11,16 @@ TimeTree public calendar standardization bridge & lightweight proxy for CLI, iCa
 
 ---
 
+## 📚 ドキュメント
+
+| ドキュメント | 内容 |
+| :--- | :--- |
+| **[Getting Started (スタートアップガイド)](docs/getting-started.md)** | インストールから Google / Apple カレンダー連携・API 連携までのステップ・バイ・ステップガイド |
+| **[アーキテクチャ & GitOps 運用設計](docs/architecture.md)** | システム全体構成図、コア設計原則、Shift-Left GitOps リリースサイクル解説 |
+| **[OpenAPI 3.0.3 仕様書](api/openapi.yaml)** | 全エンドポイント・リクエスト・レスポンスの厳密なスキーマ定義 |
+
+---
+
 ## 概要
 
 `lumitree` は、TimeTree の公開カレンダー情報を取得・標準化し、**CLI**、**標準 iCalendar (.ics)**、および **OpenAPI 準拠の REST API** として提供する Go 製の軽量 Adapter / Proxy ツールです。
