@@ -6,6 +6,7 @@
 #   ./scripts/worktree.sh create <branch-name> [base-branch]
 #   ./scripts/worktree.sh list
 #   ./scripts/worktree.sh remove <branch-name>
+#   ./scripts/worktree.sh clean
 # ==============================================================================
 
 set -euo pipefail
@@ -54,14 +55,57 @@ case "$ACTION" in
 
     TARGET_DIR="${WORKTREE_BASE_DIR}/${BRANCH_NAME}"
     echo "Removing Git Worktree: ${TARGET_DIR}..."
-    git worktree remove "$TARGET_DIR" --force || true
+    git worktree remove "$TARGET_DIR" --force 2>/dev/null || true
     rm -rf "$TARGET_DIR"
     git worktree prune
-    echo "Worktree removed."
+
+    if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
+      echo "Deleting local branch: ${BRANCH_NAME}..."
+      git branch -D "$BRANCH_NAME" || true
+    fi
+
+    echo "Worktree and local branch '${BRANCH_NAME}' successfully removed."
+    ;;
+
+  clean)
+    echo "Pruning remote-tracking branches..."
+    git fetch --prune origin || true
+
+    echo "Scanning for merged or gone worktrees and local branches..."
+    git worktree list --porcelain | grep "^worktree " | cut -d' ' -f2- | while read -r wt_path; do
+      if [ "$wt_path" != "$REPO_DIR" ] && [ -d "$wt_path" ]; then
+        wt_branch=$(git -C "$wt_path" branch --show-current 2>/dev/null || true)
+        if [ -n "$wt_branch" ]; then
+          # Check if merged to main or remote branch is gone
+          if git branch -r | grep -q "origin/${wt_branch}"; then
+            # Remote exists, check if merged to main
+            if git log "origin/main..${wt_branch}" --oneline 2>/dev/null | grep -q .; then
+              continue # Has unmerged commits, keep
+            fi
+          fi
+          echo "Cleaning up merged worktree: ${wt_path} (Branch: ${wt_branch})..."
+          git worktree remove "$wt_path" --force 2>/dev/null || true
+          rm -rf "$wt_path"
+          git branch -D "$wt_branch" 2>/dev/null || true
+        fi
+      fi
+    done
+    git worktree prune
+
+    # Delete any gone local branches without worktrees
+    git branch -vv | grep ': gone]' | awk '{print $1}' | tr -d '*+' | while read -r gone_branch; do
+      if [ -n "$gone_branch" ] && [ "$gone_branch" != "main" ] && [ "$gone_branch" != "release" ]; then
+        echo "Deleting orphaned gone local branch: ${gone_branch}..."
+        git branch -D "$gone_branch" 2>/dev/null || true
+      fi
+    done
+
+    echo "Clean complete. Remaining worktrees:"
+    git worktree list
     ;;
 
   *)
-    echo "Usage: $0 {create|list|remove} [branch-name] [base-branch]"
+    echo "Usage: $0 {create|list|remove|clean} [branch-name] [base-branch]"
     exit 1
     ;;
 esac

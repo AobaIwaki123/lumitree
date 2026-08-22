@@ -8,8 +8,8 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_DIR"
 
-echo "Fetching latest branches..."
-git fetch origin main release || true
+echo "Fetching latest branches and tags..."
+git fetch --tags origin main release || true
 
 UNRELEASED_COMMITS=$(git log origin/release..origin/main --oneline --no-merges || true)
 
@@ -39,18 +39,26 @@ if [ -z "$RELEASE_NOTES_ITEMS" ]; then
 fi
 
 DATE=$(date +%Y-%m-%d)
-PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+PREV_TAG=$(git tag -l 'v*' | sort -V | tail -n 1)
+if [ -z "$PREV_TAG" ]; then
+  PREV_TAG="v1.0.0"
+fi
+echo "Current highest version tag: ${PREV_TAG}"
 CLEAN_VER=$(echo "$PREV_TAG" | sed -E 's/^(lumitree-)?v?//')
 MAJOR=$(echo "$CLEAN_VER" | cut -d. -f1)
 MINOR=$(echo "$CLEAN_VER" | cut -d. -f2)
 NEXT_MINOR=$((MINOR + 1))
 NEXT_TAG="v${MAJOR}.${NEXT_MINOR}.0"
+echo "Calculated next release tag: ${NEXT_TAG}"
 
 STAGE_BRANCH="release-stage/${NEXT_TAG}"
 echo "Preparing staging branch: ${STAGE_BRANCH}..."
 
 # Create/reset staging branch from origin/main
 git checkout -B "$STAGE_BRANCH" origin/main
+
+# Sync release branch to prevent manifest conflict
+git merge -X ours origin/release -m "chore: sync release into staging branch" 2>/dev/null || true
 
 echo "Updating Kubernetes manifests to release version ${NEXT_TAG} on ${STAGE_BRANCH}..."
 sed -i.bak -E "s|(image: ghcr\.io/aobaiwaki123/lumitree:).*|\1${NEXT_TAG}|" k8s/manifests/deployment.yml
