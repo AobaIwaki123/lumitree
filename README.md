@@ -2,8 +2,11 @@
 
 TimeTree public calendar standardization bridge & lightweight proxy for CLI, iCalendar (.ics), and REST API.
 
-[![CI](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci.yml/badge.svg)](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci.yml)
-[![Live API Monitoring](https://github.com/AobaIwaki123/lumitree/actions/workflows/live-monitor.yml/badge.svg)](https://github.com/AobaIwaki123/lumitree/actions/workflows/live-monitor.yml)
+[![CI - Go](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-go.yml/badge.svg)](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-go.yml)
+[![CI - Shell Scripts](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-scripts.yml/badge.svg)](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-scripts.yml)
+[![CI - Workflows](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-workflows.yml/badge.svg)](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-workflows.yml)
+[![CI - Live API Monitoring](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-live-monitor.yml/badge.svg)](https://github.com/AobaIwaki123/lumitree/actions/workflows/ci-live-monitor.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/AobaIwaki123/lumitree)](https://github.com/AobaIwaki123/lumitree/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
