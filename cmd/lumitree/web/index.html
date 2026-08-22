@@ -154,7 +154,7 @@
     <p class="hint">
       対応する入力形式：<br>
       <code>https://timetreeapp.com/public_calendars/&lt;id&gt;</code><br>
-      <code>timetreeapp.com/public_calendars/&lt;id&gt;</code><br>
+      <code>https://timetr.ee/p/&lt;id&gt;/...</code>（イベント直リンク）<br>
       <code>&lt;id&gt;</code>（カレンダー ID のみ）
     </p>
   </div>
@@ -163,6 +163,11 @@
     /**
      * TimeTree の公開カレンダー URL またはカレンダー ID から
      * lumitree の iCal エンドポイント URL を生成する。
+     *
+     * 対応形式:
+     *   - https://timetreeapp.com/public_calendars/<id>
+     *   - https://timetr.ee/p/<id>/<event_id>  (イベント直リンク)
+     *   - <id> のみ
      *
      * @param {string} raw - ユーザー入力文字列
      * @returns {string|null} iCal URL、解析失敗時は null
@@ -178,7 +183,12 @@
         const withScheme = input.startsWith("http") ? input : "https://" + input;
         const url = new URL(withScheme);
         if (url.hostname.includes("timetreeapp.com")) {
+          // https://timetreeapp.com/public_calendars/<id>
           const match = url.pathname.match(/\/public_calendars\/([^/?#]+)/);
+          if (match) calendarID = match[1];
+        } else if (url.hostname.includes("timetr.ee")) {
+          // https://timetr.ee/p/<calendar_alias>/<event_id>
+          const match = url.pathname.match(/\/p\/([^/?#]+)/);
           if (match) calendarID = match[1];
         }
       } catch {
