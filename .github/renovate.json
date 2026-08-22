@@ -7,7 +7,7 @@
     ":automergeMinor",
     ":automergeDigest"
   ],
-  "platformAutomerge": true,
+  "platformAutomerge": false,
   "automergeType": "pr",
   "prCreation": "immediate",
   "internalChecksFilter": "strict",
@@ -18,7 +18,7 @@
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true,
       "automergeType": "pr",
-      "platformAutomerge": true
+      "platformAutomerge": false
     },
     {
       "description": "Do not auto-merge major updates (require human review)",
