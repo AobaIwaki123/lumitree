@@ -46,6 +46,11 @@ jobs:
           check-latest: true
           cache: false
 
+      - name: Verify Code Generation (Schema Drift Check)
+        run: |
+          go generate ./...
+          git diff --exit-code
+
       - name: Run Unit & Integration Tests
         run: |
           go test -race -v -coverprofile=coverage.out ./...
