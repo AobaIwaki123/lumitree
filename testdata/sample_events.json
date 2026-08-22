@@ -6,36 +6,36 @@
   },
   "public_events": [
     {
-      "id": 10001,
+      "id": "3012407381357599548",
       "uuid": "event-uuid-0001",
       "title": "MEGALiFE! 先行物販＠Kアリーナ横浜",
-      "description": "8/25 Kアリーナ横浜にて先行物販を実施します。",
+      "note": "8/25 Kアリーナ横浜にて先行物販を実施します。",
+      "link_url": "https://heroines.jp/news/public/_/8txp75btlwrhdofl.html",
       "start_at": 1787616000000,
       "end_at": 1787626800000,
       "all_day": false,
-      "start_timezone": "Asia/Tokyo",
-      "end_timezone": "Asia/Tokyo",
-      "location": "Kアリーナ横浜",
-      "url": "https://ticket.heroines.jp/megalife",
-      "images": [
-        {
-          "url": "https://attachments.timetreeapp.com/public_event/sample.jpg"
-        }
-      ]
+      "region_timezone": "Asia/Tokyo",
+      "location_name": "Kアリーナ横浜",
+      "images": {
+        "cover": [
+          {
+            "url": "https://attachments.timetreeapp.com/public_event/sample.jpg",
+            "thumbnail_url": "https://attachments.timetreeapp.com/public_event_s/sample.jpg"
+          }
+        ]
+      }
     },
     {
-      "id": 10002,
+      "id": "3012407381357599549",
       "uuid": "event-uuid-0002",
       "title": "若葉のあ生誕祭@TACHIKAWA STAGE GARDEN",
-      "description": "若葉のあ生誕祭イベントを開催します！",
+      "note": "若葉のあ生誕祭イベントを開催します！",
       "start_at": 1790467200000,
       "end_at": 1790467200000,
       "all_day": true,
-      "start_timezone": "Asia/Tokyo",
-      "end_timezone": "Asia/Tokyo",
-      "location": "TACHIKAWA STAGE GARDEN",
-      "url": null,
-      "images": []
+      "region_timezone": "Asia/Tokyo",
+      "location_name": "TACHIKAWA STAGE GARDEN",
+      "images": {}
     }
   ]
 }

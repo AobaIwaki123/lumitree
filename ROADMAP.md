@@ -48,16 +48,16 @@ flowchart LR
 - [x] **1-2. 設定管理 (Config) と 構造化ロギング (Observability) の導入**
   - `log/slog` を用いた構造化ログの実装（JSON/Text）
   - 環境変数ベースの設定注入（`pkg/config`）: ログレベル、TTL、Port番号など
-- [ ] **1-3. TimeTree Adapter & 正規化ロジックの実装（TDD）**
-  - CSRF/Cookie ハンドシェイク、HTTP クライアント
-  - OpenAPI 仕様から生成したモデルへのマッピング
-- [ ] **1-4. iCalendar Exporter & CLI インターフェース**
+- [x] **1-3. TimeTree Adapter & 正規化ロジックの実装（TDD）**
+  - CSRF/Cookie ハンドシェイク、HTTP クライアント (`pkg/timetree`)
+  - 実 API レスポンスに準拠したデータ正規化 (`pkg/model`)
+- [x] **1-4. iCalendar Exporter & CLI インターフェース**
   - RFC 5545 準拠の `.ics` 生成エンジン (`pkg/exporter/ical`)
-  - `cmd/lumitree`: `get <calendar_id>`, `ics <calendar_id>` コマンド
+  - `cmd/lumitree`: `get <calendar_id>`, `ics <calendar_id>`, `version` コマンドの実装
 
 **品質基準 (Quality Gate)**:
 - すべての単体テストがパスし、CI が Green であること。
-- `lumitree ics ilife_official` の出力が Mac / Google カレンダーでエラーなくインポートできること。
+- `lumitree get` および `lumitree ics` が本番カレンダーでエラーなく実行できること。
 
 ---
 
