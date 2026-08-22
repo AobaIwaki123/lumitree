@@ -27,14 +27,14 @@ graph TD
         TT["TimeTree Public Web (timetreeapp.com)"]
     end
 
-    CLI -->|Command Execution| CLIENT
-    GCAL -->|GET /api/v1/calendars/{id}/events.ics| API
-    APP -->|GET /api/v1/calendars/{id}/events| API
+    CLI -->|"Command Execution"| CLIENT
+    GCAL -->|"GET /api/v1/calendars/{id}/events.ics"| API
+    APP -->|"GET /api/v1/calendars/{id}/events"| API
 
     API --> EXPORTER
     API --> CACHE
-    CACHE -->|Cache Miss| CLIENT
-    CLIENT -->|Cookie & CSRF Handshake| TT
+    CACHE -->|"Cache Miss"| CLIENT
+    CLIENT -->|"Cookie & CSRF Handshake"| TT
 ```
 
 ---
@@ -59,13 +59,13 @@ API インターフェースは `api/openapi.yaml` で一元定義され、`oapi
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Dev as 開発者
-    participant Main as main ブランチ
-    participant Stage as release-stage/vX.Y.Z
-    participant RelPR as Release PR (#XX)
-    participant Rel as release ブランチ
-    participant GHCR as GitHub Packages (GHCR)
-    participant Argo as 自宅 Kubernetes (ArgoCD)
+    actor Dev as "開発者"
+    participant Main as "main ブランチ"
+    participant Stage as "release-stage/vX.Y.Z"
+    participant RelPR as "Release PR (#XX)"
+    participant Rel as "release ブランチ"
+    participant GHCR as "GitHub Packages (GHCR)"
+    participant Argo as "自宅 Kubernetes (ArgoCD)"
 
     Dev->>Main: 機能 PR をマージ
     Main->>Stage: release-pr.yml が起動 (最新タグから次期バージョン vX.Y.Z を計算)
