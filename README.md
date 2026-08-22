@@ -39,18 +39,19 @@ go build -o bin/lumitree ./cmd/lumitree
 
 #### 2. 正規化された JSON の出力 (パイプ / jq 連携)
 ```bash
-./bin/lumitree get ilife_official --json | jq .events[0]
+./bin/lumitree get ilife_official --json | jq '.events[0]'
+./bin/lumitree get ilife_official --json | jq '.events[0].title'
 ```
 
 #### 3. iCalendar (.ics) のエクスポート
 ```bash
-# ファイルに出力
-./bin/lumitree ics ilife_official --out ilife.ics
+# ファイルに出力 (--output または -o)
+./bin/lumitree ics ilife_official --output ilife.ics
 ```
 
 #### 4. HTTP プロキシサーバーの起動 (REST API / Webcal 配信)
 ```bash
-./bin/lumitree serve --port 8080
+./bin/lumitree serve --port 8080 --host 0.0.0.0
 ```
 
 ---
