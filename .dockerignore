@@ -1,0 +1,10 @@
+.git
+.github
+.worktrees
+.shared
+docs
+*.md
+LICENSE
+scripts
+k8s
+.golangci.yml
