@@ -7,10 +7,28 @@ on:
       - 'feat/**'
       - 'feature/**'
       - 'fix/**'
+      - 'chore/**'
+      - 'test/**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'k8s/**'
+      - '.github/workflows/docker-publish.yml'
+      - '.github/workflows/release-pr.yml'
+      - '.github/workflows/tag-on-release-merge.yml'
   pull_request:
     branches:
       - main
       - release
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'k8s/**'
+      - '.github/workflows/docker-publish.yml'
+      - '.github/workflows/release-pr.yml'
+      - '.github/workflows/tag-on-release-merge.yml'
 
 jobs:
   lint:
