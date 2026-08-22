@@ -55,9 +55,15 @@ jobs:
 
       - name: Test live iCalendar generation
         run: |
-          ./lumitree ics ilife_official > /tmp/live_events.ics
-          if ! grep -q "BEGIN:VCALENDAR" /tmp/live_events.ics; then
-            echo "::error::iCalendar export failed on live data!"
+          echo "Testing live iCalendar generation..."
+          ./lumitree ics ilife_official
+          if [ ! -f "ilife_official.ics" ]; then
+            echo "::error::ilife_official.ics file was not generated!"
+            exit 1
+          fi
+          if ! grep -q "BEGIN:VCALENDAR" ilife_official.ics; then
+            echo "::error::iCalendar format validation failed!"
             exit 1
           fi
           echo "iCalendar generation verified successfully."
+          rm -f ilife_official.ics
