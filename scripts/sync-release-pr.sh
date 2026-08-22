@@ -22,14 +22,21 @@ echo "Found unreleased commits:"
 echo "$UNRELEASED_COMMITS"
 echo ""
 
-# Extract merged PR references (#XX) from merge commits (GitHub native rich preview)
+# Extract merged PR references (#XX) from merge commits and fetch real PR titles
 MERGED_PRS=$(git log origin/release..origin/main --merges --oneline | grep -oE '#[0-9]+' | sort -V -r -u || true)
 RELEASE_NOTES_ITEMS=""
 if [ -n "$MERGED_PRS" ]; then
   while read -r pr_ref; do
     if [ -n "$pr_ref" ]; then
-      RELEASE_NOTES_ITEMS="${RELEASE_NOTES_ITEMS}
-- ${pr_ref}"
+      PR_NUM="${pr_ref#\#}"
+      PR_TITLE_TEXT=$(gh pr view "$PR_NUM" --json title --jq '.title' 2>/dev/null || echo "")
+      if [ -n "$PR_TITLE_TEXT" ]; then
+        RELEASE_NOTES_ITEMS="${RELEASE_NOTES_ITEMS}
+- #${PR_NUM}: ${PR_TITLE_TEXT}"
+      else
+        RELEASE_NOTES_ITEMS="${RELEASE_NOTES_ITEMS}
+- #${PR_NUM}"
+      fi
     fi
   done <<< "$MERGED_PRS"
 fi
