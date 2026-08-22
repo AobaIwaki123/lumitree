@@ -15,6 +15,7 @@ on:
       - '.github/workflows/ci.yml'
       - '.github/workflows/release-pr.yml'
       - '.github/workflows/tag-on-release-merge.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -27,6 +28,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Release Version Tag
+        id: version
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Detected version tag: ${TAG}"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -49,6 +59,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ steps.version.outputs.tag }},enable=${{ steps.version.outputs.tag != '' }}
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/release' || startsWith(github.ref, 'refs/tags/v') }}
             type=raw,value=release,enable=${{ github.ref == 'refs/heads/release' }}
             type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
