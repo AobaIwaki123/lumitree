@@ -7,55 +7,41 @@
 ## 1. 全体アーキテクチャ図 (System Overview)
 
 ```mermaid
-flowchart TB
-    subgraph External ["外部サービス (データソース)"]
-        TT["TimeTree Public Calendar<br/>(非公式内部API / Webフロントエンド)"]
+flowchart TD
+    subgraph External["外部データソース"]
+        TT["TimeTree Public Calendar<br/>(非公式内部API / Web)"]
     end
 
-    subgraph LumitreeApp ["lumitree (Go実装 / シングルバイナリ / コンテナ)"]
-        direction TB
-        
-        subgraph Core ["Core Domain & Adapter"]
-            Client["TimeTree Client<br/>・CSRF Handshake<br/>・Session Cookie管理<br/>・X-TimeTreeA 付与"]
-            Cache["In-Memory TTL Cache<br/>(レートリミット・過負荷防止)"]
-            Normalizer["Data Normalizer<br/>・TimeTree生データ → 標準Model<br/>・ISO8601 / JSTタイムゾーン変換"]
-        end
-
-        subgraph Exporters ["Export & Formatting"]
-            ICS["iCalendar Exporter<br/>(RFC 5545 準拠 .ics 生成)"]
-            JSONExp["JSON / Table Formatter"]
-        end
-
-        subgraph Interfaces ["Interfaces (入出力口)"]
-            CLI["CLI Runner (cobra/pflag)<br/>・lumitree get &lt;id&gt;<br/>・lumitree ics &lt;id&gt;<br/>・lumitree serve"]
-            HTTPServer["HTTP Server (REST / iCal)<br/>・GET /api/v1/calendars/{id}<br/>・GET /api/v1/calendars/{id}/events<br/>・GET /api/v1/calendars/{id}/events.ics<br/>・GET /healthz"]
-        end
+    subgraph LumitreeApp["lumitree (Go実装 / シングルバイナリ / コンテナ)"]
+        Client["TimeTree Client<br/>(CSRF・Cookie・Header管理)"]
+        Cache["In-Memory TTL Cache<br/>(過負荷・BAN防止)"]
+        Normalizer["Data Normalizer<br/>(ISO8601 / JST変換)"]
+        ICS["iCalendar Exporter<br/>(RFC 5545 準拠 .ics 生成)"]
+        CLI["CLI Runner<br/>(get / ics / serve)"]
+        HTTPServer["HTTP Server<br/>(REST API / iCal配信 / healthz)"]
 
         Client <--> Cache
         Client --> Normalizer
         Normalizer --> ICS
-        Normalizer --> JSONExp
-        
-        JSONExp --> CLI
+        Normalizer --> CLI
         ICS --> CLI
-        
         Normalizer --> HTTPServer
         ICS --> HTTPServer
     end
 
-    subgraph Downstream ["下流アプリケーション & インフラ"]
-        K8s["自宅 Kubernetes (k8s) クラスタ<br/>(ArgoCD / Deployment / Service / Ingress)"]
-        Discord["Discord Bot / LINE Bot<br/>(イベント通知・リマインド)"]
-        GCal["Google カレンダー / Apple カレンダー<br/>(Webcal .ics URL購読)"]
-        Portal["自作イベントポータル (Web UI)<br/>(REST API経由フェッチ)"]
+    subgraph Downstream["下流アプリケーション & 自宅インフラ"]
+        K8s["自宅 k8s クラスタ<br/>(ArgoCD / Ingress)"]
+        Discord["Discord / LINE Bot<br/>(イベント通知)"]
+        GCal["Google / Apple カレンダー<br/>(Webcal .ics 購読)"]
+        Portal["自作イベントポータル<br/>(REST API 連携)"]
     end
 
-    TT <== "HTTPS (CSRF/Cookie)" ==> Client
+    TT <-->|HTTPS / CSRF| Client
     K8s -.->|ホスト & 運用| LumitreeApp
-    HTTPServer -->|OpenAPI REST JSON| Discord
-    HTTPServer -->|OpenAPI REST JSON| Portal
-    HTTPServer -->|webcal:// .../events.ics| GCal
-    CLI -->|Stdout (JSON / Pipe)| Discord
+    HTTPServer -->|REST JSON| Discord
+    HTTPServer -->|REST JSON| Portal
+    HTTPServer -->|webcal .ics| GCal
+    CLI -->|JSON / Pipe| Discord
 ```
 
 ---
