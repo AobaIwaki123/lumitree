@@ -54,14 +54,17 @@ func TestGenerateICal(t *testing.T) {
 	if !strings.Contains(output, "BEGIN:VCALENDAR") || !strings.Contains(output, "END:VCALENDAR") {
 		t.Error("expected VCALENDAR envelope")
 	}
+	if !strings.Contains(output, "BEGIN:VTIMEZONE") || !strings.Contains(output, "TZID:Asia/Tokyo") {
+		t.Error("expected VTIMEZONE definition")
+	}
 	if !strings.Contains(output, "X-WR-CALNAME:iLiFE!") {
 		t.Errorf("expected calendar name, got: %s", output)
 	}
 	if !strings.Contains(output, "SUMMARY:MEGALiFE! 先行物販＠Kアリーナ横浜") {
 		t.Errorf("expected event 1 summary, got: %s", output)
 	}
-	if !strings.Contains(output, "DTSTART;TZID=Asia/Tokyo:20260825T090000") {
-		t.Errorf("expected DTSTART for timed event, got: %s", output)
+	if !strings.Contains(output, "DTSTART:20260825T000000Z") {
+		t.Errorf("expected UTC DTSTART for timed event, got: %s", output)
 	}
 	if !strings.Contains(output, "LOCATION:Kアリーナ横浜") {
 		t.Errorf("expected LOCATION, got: %s", output)
