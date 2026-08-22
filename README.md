@@ -1,4 +1,4 @@
-# lumitree 🌲✨
+# lumitree
 
 TimeTree public calendar standardization bridge & lightweight proxy for CLI, iCalendar (.ics), and REST API.
 
@@ -8,19 +8,19 @@ TimeTree public calendar standardization bridge & lightweight proxy for CLI, iCa
 
 ---
 
-## 🎯 What is lumitree?
+## 概要
 
 `lumitree` は、TimeTree の公開カレンダー情報を取得・標準化し、**CLI**、**標準 iCalendar (.ics)**、および **OpenAPI 準拠の REST API** として提供する Go 製の軽量 Adapter / Proxy ツールです。
 
-- 🛡️ **CSRF / セッション管理の完全隠蔽**: TimeTree 内部 API とのハンドシェイクを自動処理。
-- 🔄 **標準データ正規化**: ミリ秒タイムスタンプを ISO8601 / JST へ変換。
-- ⚡ **In-Memory TTL キャッシュ**: TimeTree への過度なリクエストや IP BAN を防止。
-- 📅 **Webcal (.ics) 配信**: Google カレンダーや Apple カレンダーから URL 指定で自動購読可能。
-- ☸️ **Kubernetes Ready**: Distroless ベースの超軽量コンテナ（数十 MB 以下で常駐）。
+- **CSRF / セッション管理の完全隠蔽**: TimeTree 内部 API とのハンドシェイクを自動処理。
+- **標準データ正規化**: ミリ秒タイムスタンプを ISO8601 / JST へ変換。
+- **In-Memory TTL キャッシュ**: TimeTree への過度なリクエストや IP BAN を防止。
+- **Webcal (.ics) 配信**: Google カレンダーや Apple カレンダーから URL 指定で自動購読可能。
+- **Kubernetes Ready**: Distroless ベースの超軽量コンテナ（数十 MB 以下で常駐）。
 
 ---
 
-## 🚀 クイックスタート (CLI)
+## クイックスタート (CLI)
 
 ### インストール
 ```bash
@@ -55,7 +55,7 @@ go build -o bin/lumitree ./cmd/lumitree
 
 ---
 
-## 🌐 HTTP API エンドポイント
+## HTTP API エンドポイント
 
 | メソッド | パス | 説明 | レスポンス形式 |
 | :--- | :--- | :--- | :--- |
@@ -66,19 +66,19 @@ go build -o bin/lumitree ./cmd/lumitree
 
 ---
 
-## 📱 Google カレンダー / Apple カレンダーでの自動同期
+## Google カレンダー / Apple カレンダーでの自動同期
 
-1. `lumitree serve` を自宅 k8s や VPS で起動（例: `https://lumitree.example.com`）。
-2. Google カレンダーの左メニュー「他のカレンダー」の「＋」をクリック → **「URL で追加」** を選択。
+1. `lumitree serve` を自宅 k8s や VPS で起動（例: `https://lumitree.aooba.net`）。
+2. Google カレンダーの左メニュー「他のカレンダー」の「＋」をクリックし、「**URL で追加**」を選択。
 3. カレンダーの URL に以下を入力：
    ```
-   https://lumitree.example.com/api/v1/calendars/ilife_official/events.ics
+   https://lumitree.aooba.net/api/v1/calendars/ilife_official/events.ics
    ```
-4. これだけで、TimeTree 上の最新イベントが Google カレンダー上に自動同期されます。
+4. これにより、TimeTree 上の最新イベントが Google カレンダー上に自動同期されます。
 
 ---
 
-## 🐳 Docker & Kubernetes での起動
+## Docker & Kubernetes での起動
 
 ### Docker
 ```bash
@@ -91,17 +91,20 @@ docker run -d -p 8080:8080 --name lumitree lumitree:latest
 kubectl apply -k k8s/manifests/
 ```
 
----
-
-## 📚 ドキュメント & 仕様
-
-- 🏛️ **[システムアーキテクチャ (docs/architecture.md)](docs/architecture.md)**
-- 🗺️ **[開発ロードマップ (ROADMAP.md)](ROADMAP.md)**
-- 📑 **[OpenAPI 3.0.3 仕様書 (api/openapi.yaml)](api/openapi.yaml)**
-- 📐 **[生データ ↔ 標準モデル マッピング仕様 (spec/mapping.md)](spec/mapping.md)**
+### ArgoCD
+`k8s/argocd/app.yml` をクラスタに適用することで GitOps 運用が可能です。
 
 ---
 
-## 📄 ライセンス
+## ドキュメント & 仕様
+
+- **[システムアーキテクチャ (docs/architecture.md)](docs/architecture.md)**
+- **[開発ロードマップ (ROADMAP.md)](ROADMAP.md)**
+- **[OpenAPI 3.0.3 仕様書 (api/openapi.yaml)](api/openapi.yaml)**
+- **[生データ ↔ 標準モデル マッピング仕様 (spec/mapping.md)](spec/mapping.md)**
+
+---
+
+## ライセンス
 
 [MIT License](LICENSE) © 2026 Aoba Iwaki

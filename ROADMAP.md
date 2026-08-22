@@ -1,10 +1,10 @@
-# 🗺️ lumitree 開発ロードマップ (ROADMAP.md)
+# lumitree 開発ロードマップ (ROADMAP.md)
 
 本ドキュメントでは、`lumitree` の開発フェーズ、マイルストーン、各ステップの成果物および品質基準を定義します。
 
 ---
 
-## 🎯 開発の基本原則
+## 開発の基本原則
 1. **責務の局所化 (Single Responsibility)**: TimeTree 公開カレンダーの取得・正規化・標準インターフェース（JSON / iCal / OpenAPI）提供に特化し、通知やDB保存等の外部ロジックは下流アプリに委ねる。
 2. **テストファースト & CI 駆動 (Test-First & CI Assurance)**: 要件をフィクスチャ／モックテストとして先に定義し、PR ごとに CI（Lint / Test / Coverage）の通過を品質基準とする。
 3. **再現性と軽量性 (Reproducible & Lightweight)**: 自宅 k8s 環境での安定稼働を目指し、最小限のリソース（メモリ数十MB以下）で常駐可能なシングルバイナリ／Distroless コンテナとする。
@@ -12,7 +12,7 @@
 
 ---
 
-## 🗺️ フェーズ一覧
+## フェーズ一覧
 
 ```mermaid
 flowchart LR
@@ -23,7 +23,7 @@ flowchart LR
 
 ---
 
-### 📦 Phase 0: 全体設計 & スキーマ策定 (Design & Spec)
+### Phase 0: 全体設計 & スキーマ策定 (Design & Spec)
 > **目的**: システム全体像と標準データモデル（OpenAPI 3.0）を確定させ、実装のブレを防ぐ。
 
 - [x] **0-1. システム全体像の確定**
@@ -39,7 +39,7 @@ flowchart LR
 
 ---
 
-### 🧪 Phase 1: CI基盤・テスト整備 & コア実装（CLI / Adapter）
+### Phase 1: CI基盤・テスト整備 & コア実装（CLI / Adapter）
 > **目的**: 運用に耐えうる可観測性（ログ・設定）とCIを備え、CLIツールとして完成させる。
 
 - [x] **1-1. CI 基盤 & テストハーネスの構築**
@@ -61,16 +61,16 @@ flowchart LR
 
 ---
 
-### ☸️ Phase 2: HTTP Server (Proxy/BFF) & 自宅 Kubernetes (k8s) デプロイ
+### Phase 2: HTTP Server (Proxy/BFF) & 自宅 Kubernetes (k8s) デプロイ
 > **目的**: OpenAPI 準拠の常駐型プロキシサーバーを実装し、自宅 k8s で安定稼働させる。
 
 - [x] **2-1. OpenAPI 準拠 HTTP サーバーの実装**
-  - \`api/openapi.yaml\` に準拠した HTTP ルーティング (\`pkg/server\`)
-  - \`cmd/lumitree serve\` コマンドの実装（Graceful shutdown 対応）
-  - **インメモリ TTL キャッシュ**: デフォルト 10 分のキャッシュ (\`pkg/cache\`)
+  - `api/openapi.yaml` に準拠した HTTP ルーティング (`pkg/server`)
+  - `cmd/lumitree serve` コマンドの実装（Graceful shutdown 対応）
+  - **インメモリ TTL キャッシュ**: デフォルト 10 分のキャッシュ (`pkg/cache`)
 - [x] **2-2. コンテナ化 & Kubernetes マニフェスト整備**
-  - \`Dockerfile\`: Multi-stage build (Distroless ベースの超軽量コンテナ)
-  - \`k8s/\` マニフェスト: Deployment (CPU/Mem Limit), Service, Ingress, Kustomization
+  - `Dockerfile`: Multi-stage build (Distroless ベースの超軽量コンテナ)
+  - `k8s/` マニフェスト: Deployment, Service, Ingress (`cloudflare-tunnel`), ArgoCD (`k8s/argocd/app.yml`)
 - [ ] **2-3. 自宅 k8s クラスタへのデプロイ & 結合検証**
   - GitOps (ArgoCD) または直接適用によるクラスタデプロイ
   - Google カレンダーからの自動購読同期テスト
@@ -80,14 +80,14 @@ flowchart LR
 
 ---
 
-### 🚀 Phase 3: OSS 体裁 & リリース自動化 (CI/CD)
+### Phase 3: OSS 体裁 & リリース自動化 (CI/CD)
 > **目的**: 個人開発の OSS としてオーバーエンジニアリングを避けつつ、自動化と信頼性を担保する。
 
 - [x] **3-1. 自動ビルド & リリースノート (Tag-based Release)**
-  - Git-Flow のような複雑なリリースブランチは採用せず、`main` のタグトリガー（例: `v1.0.0`）による自動リリースを採用 (\`.goreleaser.yaml\`, \`.github/workflows/release.yml\`)
+  - Git-Flow のような複雑なリリースブランチは採用せず、`main` のタグトリガー（例: `v1.0.0`）による自動リリースを採用 (`.goreleaser.yaml`, `.github/workflows/release.yml`)
   - GoReleaser によるマルチOSバイナリ自動生成 & GHCR コンテナ Push
 - [x] **3-2. 非公式 API 防衛策: Live Monitoring (E2E 定期監視)**
-  - GitHub Actions の Cron (毎日 00:00 UTC) で、本番の TimeTree から実データを取得する E2E テストを実行 (\`.github/workflows/live-monitor.yml\`)
+  - GitHub Actions の Cron (毎日 00:00 UTC) で、本番の TimeTree から実データを取得する E2E テストを実行 (`.github/workflows/live-monitor.yml`)
   - 仕様変更でパースが壊れた場合に即時検知して通知するカナリア運用の導入
 - [x] **3-3. OSS ドキュメント整備**
-  - \`README.md\` (バッジ、QuickStart、Docker起動方法)、\`LICENSE\` (MIT)
+  - `README.md` (バッジ、QuickStart、Docker起動方法)、`LICENSE` (MIT)
