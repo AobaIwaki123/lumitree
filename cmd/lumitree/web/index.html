@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lumitree - iCal Link Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      padding: 2rem;
+      width: 100%;
+      max-width: 540px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #111;
+      margin-bottom: 0.25rem;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 1.75rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #444;
+      margin-bottom: 0.4rem;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #111;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]:focus { border-color: #555; }
+    input[type="text"].error { border-color: #e55; }
+
+    .btn {
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: #111; color: #fff; }
+    .btn-primary:hover { background: #333; }
+
+    .btn-copy { background: #e8f5e9; color: #2e7d32; }
+    .btn-copy:hover { background: #c8e6c9; }
+    .btn-copy.copied { background: #2e7d32; color: #fff; }
+
+    .result-section { display: none; }
+    .result-section.visible { display: block; }
+
+    .result-url {
+      font-size: 0.8rem;
+      color: #333;
+      background: #f8f8f8;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 0.6rem 0.75rem;
+      word-break: break-all;
+      margin-bottom: 0.5rem;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    .error-msg {
+      font-size: 0.8rem;
+      color: #c00;
+      margin-top: -0.75rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .error-msg.visible { display: block; }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #888;
+      margin-top: 1.25rem;
+      line-height: 1.6;
+    }
+
+    .hint code {
+      background: #f0f0f0;
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>lumitree</h1>
+    <p class="subtitle">TimeTree の公開カレンダーリンクを iCal リンクに変換します。</p>
+
+    <label for="input-url">TimeTree カレンダー URL またはカレンダー ID</label>
+    <div class="input-group">
+      <input
+        type="text"
+        id="input-url"
+        placeholder="https://timetreeapp.com/public_calendars/xxx  または  xxx"
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <button class="btn btn-primary" id="btn-convert">変換</button>
+    </div>
+    <p class="error-msg" id="error-msg">カレンダー ID を認識できませんでした。</p>
+
+    <div class="result-section" id="result-section">
+      <label>iCal リンク</label>
+      <div class="result-url" id="result-url"></div>
+      <div class="input-group">
+        <button class="btn btn-copy" id="btn-copy">コピー</button>
+      </div>
+    </div>
+
+    <p class="hint">
+      対応する入力形式：<br>
+      <code>https://timetreeapp.com/public_calendars/&lt;id&gt;</code><br>
+      <code>timetreeapp.com/public_calendars/&lt;id&gt;</code><br>
+      <code>&lt;id&gt;</code>（カレンダー ID のみ）
+    </p>
+  </div>
+
+  <script>
+    /**
+     * TimeTree の公開カレンダー URL またはカレンダー ID から
+     * lumitree の iCal エンドポイント URL を生成する。
+     *
+     * @param {string} raw - ユーザー入力文字列
+     * @returns {string|null} iCal URL、解析失敗時は null
+     */
+    function buildICalURL(raw) {
+      const input = raw.trim();
+      if (!input) return null;
+
+      let calendarID = null;
+
+      // URL として試みてパス末尾の ID を抽出する
+      try {
+        const withScheme = input.startsWith("http") ? input : "https://" + input;
+        const url = new URL(withScheme);
+        if (url.hostname.includes("timetreeapp.com")) {
+          const match = url.pathname.match(/\/public_calendars\/([^/?#]+)/);
+          if (match) calendarID = match[1];
+        }
+      } catch {
+        // URL パース失敗 → ID として扱う
+      }
+
+      // URL から取れなかった場合、入力全体をカレンダー ID として扱う
+      if (!calendarID) {
+        if (/^[A-Za-z0-9_-]+$/.test(input)) {
+          calendarID = input;
+        }
+      }
+
+      if (!calendarID) return null;
+
+      return `${window.location.origin}/api/v1/calendars/${calendarID}/events.ics`;
+    }
+
+    const inputEl      = document.getElementById("input-url");
+    const btnConvert   = document.getElementById("btn-convert");
+    const errorMsg     = document.getElementById("error-msg");
+    const resultSection = document.getElementById("result-section");
+    const resultURL    = document.getElementById("result-url");
+    const btnCopy      = document.getElementById("btn-copy");
+
+    function convert() {
+      const url = buildICalURL(inputEl.value);
+
+      errorMsg.classList.remove("visible");
+      inputEl.classList.remove("error");
+      resultSection.classList.remove("visible");
+
+      if (!url) {
+        errorMsg.classList.add("visible");
+        inputEl.classList.add("error");
+        return;
+      }
+
+      resultURL.textContent = url;
+      resultSection.classList.add("visible");
+      btnCopy.textContent = "コピー";
+      btnCopy.classList.remove("copied");
+    }
+
+    btnConvert.addEventListener("click", convert);
+    inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") convert(); });
+
+    btnCopy.addEventListener("click", () => {
+      navigator.clipboard.writeText(resultURL.textContent).then(() => {
+        btnCopy.textContent = "コピー完了";
+        btnCopy.classList.add("copied");
+        setTimeout(() => {
+          btnCopy.textContent = "コピー";
+          btnCopy.classList.remove("copied");
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>

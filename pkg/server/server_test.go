@@ -7,13 +7,16 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/AobaIwaki123/lumitree/pkg/config"
 	"github.com/AobaIwaki123/lumitree/pkg/timetree"
 )
 
-func TestServerEndpoints(t *testing.T) {
+func newTestServer(t *testing.T, opts ...func(*Server)) (http.Handler, func()) {
+	t.Helper()
+
 	pageHTML, _ := os.ReadFile(filepath.Join("..", "..", "testdata", "sample_page.html"))
 	calJSON, _ := os.ReadFile(filepath.Join("..", "..", "testdata", "sample_calendar.json"))
 	eventsJSON, _ := os.ReadFile(filepath.Join("..", "..", "testdata", "sample_events.json"))
@@ -33,20 +36,23 @@ func TestServerEndpoints(t *testing.T) {
 			http.NotFound(w, r)
 		}
 	}))
-	defer mockTimeTree.Close()
 
 	cfg := &config.Config{
 		CacheTTL:        5 * time.Minute,
 		TimeTreeBaseURL: mockTimeTree.URL,
 	}
-
 	client, err := timetree.NewClient(timetree.WithBaseURL(mockTimeTree.URL))
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
 
-	srv := NewServer(cfg, client, nil)
-	handler := srv.Handler()
+	srv := NewServer(cfg, client, nil, opts...)
+	return srv.Handler(), mockTimeTree.Close
+}
+
+func TestServerEndpoints(t *testing.T) {
+	handler, cleanup := newTestServer(t)
+	defer cleanup()
 
 	// 1. Test /healthz
 	t.Run("GET /healthz", func(t *testing.T) {
@@ -104,6 +110,45 @@ func TestServerEndpoints(t *testing.T) {
 		}
 		if !strings.Contains(rec.Body.String(), "BEGIN:VCALENDAR") {
 			t.Errorf("expected VCALENDAR, got %s", rec.Body.String())
+		}
+	})
+}
+
+func TestServerUIRoute(t *testing.T) {
+	const indexContent = `<!DOCTYPE html><html><body>lumitree UI</body></html>`
+
+	mockFS := fstest.MapFS{
+		"index.html": &fstest.MapFile{Data: []byte(indexContent)},
+	}
+
+	// With staticFS: GET / should return index.html.
+	t.Run("GET / with staticFS returns index.html", func(t *testing.T) {
+		handler, cleanup := newTestServer(t, WithStaticFS(mockFS))
+		defer cleanup()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+		if !strings.Contains(rec.Body.String(), "lumitree UI") {
+			t.Errorf("expected UI content, got %s", rec.Body.String())
+		}
+	})
+
+	// Without staticFS: GET / should return 404.
+	t.Run("GET / without staticFS returns 404", func(t *testing.T) {
+		handler, cleanup := newTestServer(t)
+		defer cleanup()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("expected 404, got %d", rec.Code)
 		}
 	})
 }
