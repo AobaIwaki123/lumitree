@@ -32,7 +32,7 @@ paths:
   /api/v1/calendars/{calendarId}:
     get:
       summary: カレンダー基本情報の取得
-      description: 指定されたカレンダーID（または alias_code）のメタ情報（タイトル、概要、画像、SNSリンク等）を取得します。
+      description: "指定されたカレンダーID（または alias_code）のメタ情報（タイトル、概要、画像、SNSリンク等）を取得します。"
       operationId: getCalendar
       tags:
         - Calendars
@@ -57,7 +57,7 @@ paths:
   /api/v1/calendars/{calendarId}/events:
     get:
       summary: イベント一覧の取得 (JSON)
-      description: 指定されたカレンダーのイベント一覧を、ISO8601 日時形式で正規化された JSON 配列として取得します。
+      description: "指定されたカレンダーのイベント一覧を、ISO8601 日時形式で正規化された JSON 配列として取得します。"
       operationId: getCalendarEvents
       tags:
         - Events
@@ -65,14 +65,14 @@ paths:
         - $ref: '#/components/parameters/CalendarIdParam'
         - name: year
           in: query
-          description: 取得対象年（例: 2026）
+          description: "取得対象年（例: 2026）"
           required: false
           schema:
             type: integer
             example: 2026
         - name: month
           in: query
-          description: 取得対象月 (1-12)
+          description: "取得対象月 (1-12)"
           required: false
           schema:
             type: integer
@@ -81,7 +81,7 @@ paths:
             example: 8
         - name: page
           in: query
-          description: ページ番号
+          description: "ページ番号"
           required: false
           schema:
             type: integer
@@ -105,7 +105,7 @@ paths:
 
   /api/v1/calendars/{calendarId}/events.ics:
     get:
-      summary: iCalendar (.ics) 形式でのイベント配信
+      summary: "iCalendar (.ics) 形式でのイベント配信"
       description: >-
         Google カレンダーや Apple カレンダーの「URL でカレンダーを追加（Webcal 購読）」に対応した
         RFC 5545 準拠の .ics 形式データを配信します。
@@ -116,26 +116,11 @@ paths:
         - $ref: '#/components/parameters/CalendarIdParam'
       responses:
         '200':
-          description: iCalendar 形式データ配信成功
+          description: "iCalendar 形式データ配信成功"
           content:
             text/calendar:
               schema:
                 type: string
-                example: |
-                  BEGIN:VCALENDAR
-                  VERSION:2.0
-                  PRODID:-//lumitree//lumitree 1.0.0//EN
-                  CALSCALE:GREGORIAN
-                  METHOD:PUBLISH
-                  X-WR-CALNAME:iLiFE!
-                  X-WR-TIMEZONE:Asia/Tokyo
-                  BEGIN:VEVENT
-                  UID:ilife_official-123456@lumitree
-                  SUMMARY:MEGALiFE! 先行物販＠Kアリーナ横浜
-                  DTSTART;TZID=Asia/Tokyo:20260825T090000
-                  DTEND;TZID=Asia/Tokyo:20260825T090000
-                  END:VEVENT
-                  END:VCALENDAR
         '400':
           $ref: '#/components/responses/BadRequestError'
         '404':
@@ -150,7 +135,7 @@ components:
     CalendarIdParam:
       name: calendarId
       in: path
-      description: TimeTree 公開カレンダーの識別子（alias_code、例: ilife_official）
+      description: "TimeTree 公開カレンダーの識別子（alias_code、例: ilife_official）"
       required: true
       schema:
         type: string
@@ -184,38 +169,41 @@ components:
       properties:
         id:
           type: string
-          description: カレンダーの一意識別子
+          description: "カレンダーの一意識別子"
           example: '46438'
         aliasCode:
           type: string
-          description: URL上の識別子
+          description: "URL上の識別子"
           example: ilife_official
         title:
           type: string
-          description: カレンダー名（グループ/アイドル名）
+          description: "カレンダー名（グループ/アイドル名）"
           example: iLiFE!
         description:
           type: string
-          description: カレンダーの概要文
-          example: iLiFE!のイベント・出演スケジュールです。
+          description: "カレンダーの概要文"
+          example: "iLiFE!のイベント・出演スケジュールです。"
         coverImageUrl:
           type: string
           format: uri
-          description: カバー画像 URL
-          example: https://attachments.timetreeapp.com/public_calendar/...
+          description: "カバー画像 URL"
+          example: "https://attachments.timetreeapp.com/public_calendar/sample.jpg"
         snsLinks:
-          type: object
-          description: 関連 SNS リンク
-          properties:
-            twitter:
-              type: string
-              example: https://x.com/iLiFE_official
-            instagram:
-              type: string
-              example: https://instagram.com/ilife_official
-            website:
-              type: string
-              example: https://ilife.heroines.jp
+          $ref: '#/components/schemas/SNSLinks'
+
+    SNSLinks:
+      type: object
+      description: "関連 SNS リンク"
+      properties:
+        twitter:
+          type: string
+          example: "https://x.com/iLiFE_official"
+        instagram:
+          type: string
+          example: "https://instagram.com/ilife_official"
+        website:
+          type: string
+          example: "https://ilife.heroines.jp"
 
     Event:
       type: object
@@ -225,57 +213,58 @@ components:
         - startAt
         - endAt
         - allDay
+        - timezone
       properties:
         id:
           type: string
-          description: イベント一意識別子
+          description: "イベント一意識別子"
           example: '12345678'
         uuid:
           type: string
-          description: イベント UUID
+          description: "イベント UUID"
           example: '98765432-abcd-ef01-2345-6789abcdef01'
         title:
           type: string
-          description: イベント名（公演・物販・生誕祭等）
-          example: MEGALiFE! 先行物販＠Kアリーナ横浜
+          description: "イベント名（公演・物販・生誕祭等）"
+          example: "MEGALiFE! 先行物販＠Kアリーナ横浜"
         description:
           type: string
-          description: イベント詳細・物販情報・チケット情報
-          example: 8/25 Kアリーナ横浜にて先行物販を実施します。
+          description: "イベント詳細・物販情報・チケット情報"
+          example: "8/25 Kアリーナ横浜にて先行物販を実施します。"
         startAt:
           type: string
           format: date-time
-          description: 開始日時 (ISO8601)
+          description: "開始日時 (ISO8601)"
           example: '2026-08-25T09:00:00+09:00'
         endAt:
           type: string
           format: date-time
-          description: 終了日時 (ISO8601)
+          description: "終了日時 (ISO8601)"
           example: '2026-08-25T12:00:00+09:00'
         allDay:
           type: boolean
-          description: 終日イベントフラグ
+          description: "終日イベントフラグ"
           example: false
         timezone:
           type: string
-          description: タイムゾーン（原則 Asia/Tokyo）
+          description: "タイムゾーン（原則 Asia/Tokyo）"
           example: Asia/Tokyo
         location:
           type: string
           nullable: true
-          description: 会場・開催場所
-          example: Kアリーナ横浜
+          description: "会場・開催場所"
+          example: "Kアリーナ横浜"
         url:
           type: string
           nullable: true
-          description: 関連 URL（チケット・詳細ページ）
-          example: https://ticket.heroines.jp/megalife
+          description: "関連 URL（チケット・詳細ページ）"
+          example: "https://ticket.heroines.jp/megalife"
         imageUrls:
           type: array
           items:
             type: string
             format: uri
-          description: 添付画像 URL リスト
+          description: "添付画像 URL リスト"
 
     Pagination:
       type: object
@@ -321,46 +310,46 @@ components:
         type:
           type: string
           format: uri
-          description: エラー種別 URI (RFC 7807)
-          example: https://lumitree.dev/errors/not-found
+          description: "エラー種別 URI (RFC 7807)"
+          example: "https://lumitree.dev/errors/not-found"
         title:
           type: string
-          description: エラー概要
-          example: Resource Not Found
+          description: "エラー概要"
+          example: "Resource Not Found"
         status:
           type: integer
-          description: HTTP ステータスコード
+          description: "HTTP ステータスコード"
           example: 404
         detail:
           type: string
-          description: エラー詳細メッセージ
-          example: Public calendar 'ilife_official' was not found on TimeTree.
+          description: "エラー詳細メッセージ"
+          example: "Public calendar 'ilife_official' was not found on TimeTree."
         instance:
           type: string
-          description: リクエストパス
-          example: /api/v1/calendars/invalid_id
+          description: "リクエストパス"
+          example: "/api/v1/calendars/invalid_id"
 
   responses:
     BadRequestError:
-      description: リクエストパラメータ不正
+      description: "リクエストパラメータ不正"
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     NotFoundError:
-      description: カレンダーまたはリソースが見つからない
+      description: "カレンダーまたはリソースが見つからない"
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     InternalServerError:
-      description: サーバー内部エラー
+      description: "サーバー内部エラー"
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
     BadGatewayError:
-      description: アップストリーム（TimeTree）との通信エラーまたは仕様変更検知
+      description: "アップストリーム（TimeTree）との通信エラーまたは仕様変更検知"
       content:
         application/json:
           schema:
