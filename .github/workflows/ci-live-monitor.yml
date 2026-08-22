@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  canary-check:
-    name: Canary Live Check
+  live-api-check:
+    name: Test Live TimeTree API
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -52,6 +52,24 @@ jobs:
             echo "::error::Failed to fetch live events from TimeTree after $MAX_RETRIES attempts!"
             exit 1
           fi
+
+  ical-export-check:
+    name: Verify iCalendar Export
+    needs: [live-api-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          check-latest: true
+          cache: false
+
+      - name: Build lumitree CLI
+        run: go build -o lumitree ./cmd/lumitree
 
       - name: Test live iCalendar generation
         run: |
