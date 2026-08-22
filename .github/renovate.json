@@ -1,0 +1,43 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":automergeMinor",
+    ":automergeDigest"
+  ],
+  "baseBranches": ["main"],
+  "platformAutomerge": false,
+  "automergeType": "pr",
+  "prCreation": "immediate",
+  "internalChecksFilter": "strict",
+  "ignoreTests": false,
+  "packageRules": [
+    {
+      "description": "Auto-merge patch and minor dependencies only after CI passes",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": false
+    },
+    {
+      "description": "Do not auto-merge major updates (require human review)",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions dependencies",
+      "automerge": true
+    },
+    {
+      "description": "Group Go minor/patch dependencies",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "go dependencies (non-major)",
+      "automerge": true
+    }
+  ]
+}

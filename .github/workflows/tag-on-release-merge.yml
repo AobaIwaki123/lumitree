@@ -64,9 +64,9 @@ jobs:
         run: |
           echo "Preparing clean release notes from Release PR..."
           if [ -n "$PR_BODY" ]; then
-            echo "$PR_BODY" > RELEASE_NOTES.md
+            echo "$PR_BODY" > /tmp/RELEASE_NOTES.md
           else
-            echo "Release ${{ steps.version.outputs.tag }}" > RELEASE_NOTES.md
+            echo "Release ${{ steps.version.outputs.tag }}" > /tmp/RELEASE_NOTES.md
           fi
 
       - name: Run GoReleaser
@@ -74,7 +74,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean --release-notes RELEASE_NOTES.md
+          args: release --clean --release-notes /tmp/RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
