@@ -1,0 +1,63 @@
+name: CI - Live API Monitoring
+
+on:
+  schedule:
+    # Runs daily at 00:00 UTC (09:00 JST)
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+jobs:
+  canary-check:
+    name: Canary Live Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          check-latest: true
+          cache: false
+
+      - name: Build lumitree CLI
+        run: go build -o lumitree ./cmd/lumitree
+
+      - name: Test live TimeTree public calendar fetch with retry
+        run: |
+          echo "Checking live TimeTree API connectivity..."
+          MAX_RETRIES=30
+          RETRY_DELAY=10
+          SUCCESS=false
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            echo "Attempt $i of $MAX_RETRIES: Fetching public events..."
+            if ./lumitree get ilife_official --json > /tmp/live_events.json 2>&1; then
+              COUNT=$(grep -o '"title":' /tmp/live_events.json | wc -l || echo 0)
+              if [ "$COUNT" -gt 0 ]; then
+                echo "Successfully fetched $COUNT events from live TimeTree."
+                SUCCESS=true
+                break
+              fi
+            fi
+            echo "Fetch attempt $i failed. Retrying in ${RETRY_DELAY}s..."
+            sleep "$RETRY_DELAY"
+          done
+
+          if [ "$SUCCESS" != "true" ]; then
+            echo "::error::Failed to fetch live events from TimeTree after $MAX_RETRIES attempts!"
+            exit 1
+          fi
+
+      - name: Test live iCalendar generation
+        run: |
+          ./lumitree ics ilife_official > /tmp/live_events.ics
+          if ! grep -q "BEGIN:VCALENDAR" /tmp/live_events.ics; then
+            echo "::error::iCalendar export failed on live data!"
+            exit 1
+          fi
+          echo "iCalendar generation verified successfully."

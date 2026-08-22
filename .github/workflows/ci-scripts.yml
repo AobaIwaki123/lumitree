@@ -1,0 +1,33 @@
+name: CI - Shell Scripts
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/**'
+      - 'feature/**'
+      - 'fix/**'
+      - 'chore/**'
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/ci-scripts.yml'
+  pull_request:
+    branches:
+      - main
+      - release
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/ci-scripts.yml'
+
+jobs:
+  shellcheck:
+    name: ShellCheck Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        run: |
+          echo "Running shellcheck on all scripts..."
+          shellcheck scripts/*.sh

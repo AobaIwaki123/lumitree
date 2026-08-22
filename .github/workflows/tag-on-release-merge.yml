@@ -44,7 +44,6 @@ jobs:
           CLEAN_VER=$(echo "$PREV_TAG" | sed -E 's/^(lumitree-)?v?//')
           MAJOR=$(echo "$CLEAN_VER" | cut -d. -f1)
           MINOR=$(echo "$CLEAN_VER" | cut -d. -f2)
-          PATCH=$(echo "$CLEAN_VER" | cut -d. -f3)
           NEXT_MINOR=$((MINOR + 1))
           NEXT_TAG="v${MAJOR}.${NEXT_MINOR}.0"
           echo "tag=${NEXT_TAG}" >> "$GITHUB_OUTPUT"
@@ -59,12 +58,23 @@ jobs:
           git push origin "${TAG}"
           echo "Successfully pushed tag ${TAG}!"
 
+      - name: Prepare Release Notes
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          echo "Preparing clean release notes from Release PR..."
+          if [ -n "$PR_BODY" ]; then
+            echo "$PR_BODY" > RELEASE_NOTES.md
+          else
+            echo "Release ${{ steps.version.outputs.tag }}" > RELEASE_NOTES.md
+          fi
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean
+          args: release --clean --release-notes RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -102,9 +112,10 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Clean up Staging Branch
+        env:
+          STAGE_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          STAGE_BRANCH="${{ github.event.pull_request.head.ref }}"
-          if [[ "$STAGE_BRANCH" == release-stage/* ]]; then
-            echo "Deleting temporary staging branch: ${STAGE_BRANCH}..."
-            git push origin --delete "${STAGE_BRANCH}" || true
+          if [[ "$STAGE_REF" == release-stage/* ]]; then
+            echo "Deleting temporary staging branch: ${STAGE_REF}..."
+            git push origin --delete "${STAGE_REF}" || true
           fi
