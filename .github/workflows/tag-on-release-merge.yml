@@ -58,12 +58,23 @@ jobs:
           git push origin "${TAG}"
           echo "Successfully pushed tag ${TAG}!"
 
+      - name: Prepare Release Notes
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          echo "Preparing clean release notes from Release PR..."
+          if [ -n "$PR_BODY" ]; then
+            echo "$PR_BODY" > RELEASE_NOTES.md
+          else
+            echo "Release ${{ steps.version.outputs.tag }}" > RELEASE_NOTES.md
+          fi
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean
+          args: release --clean --release-notes RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
