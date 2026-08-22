@@ -1,3 +1,4 @@
+// Package config provides configuration management for lumitree using environment variables.
 package config
 
 import (

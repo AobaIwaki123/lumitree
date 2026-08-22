@@ -1,3 +1,4 @@
+// Package timetree implements an unofficial client for TimeTree public calendar web API.
 package timetree
 
 import (

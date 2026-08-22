@@ -1,3 +1,4 @@
+// Package model defines core domain entities and data normalization logic for lumitree.
 package model
 
 import (
@@ -53,12 +54,12 @@ type EventListResponse struct {
 	Pagination *Pagination `json:"pagination"`
 }
 
-// Raw TimeTree API structures for JSON decoding.
-
+// RawCalendarResponse represents TimeTree's raw calendar envelope.
 type RawCalendarResponse struct {
 	PublicCalendar RawCalendar `json:"public_calendar"`
 }
 
+// RawCalendar represents TimeTree's raw calendar object.
 type RawCalendar struct {
 	ID        any                `json:"id"`
 	AliasCode string             `json:"alias_code"`
@@ -68,26 +69,31 @@ type RawCalendar struct {
 	Links     map[string]*string `json:"links"`
 }
 
+// RawImages represents image container in raw calendar response.
 type RawImages struct {
 	Cover any `json:"cover"` // Can be *RawImage or []RawImage
 }
 
+// RawImage represents a single image URL pair.
 type RawImage struct {
 	URL          string `json:"url"`
 	ThumbnailURL string `json:"thumbnail_url"`
 }
 
+// RawEventsResponse represents TimeTree's raw events envelope.
 type RawEventsResponse struct {
 	Paging       RawPaging  `json:"paging"`
 	PublicEvents []RawEvent `json:"public_events"`
 }
 
+// RawPaging represents TimeTree's raw pagination object.
 type RawPaging struct {
 	CurrentPage int `json:"current_page"`
 	TotalPages  int `json:"total_pages"`
 	TotalCount  int `json:"total_count"`
 }
 
+// RawEvent represents TimeTree's raw event object.
 type RawEvent struct {
 	ID             any            `json:"id"`
 	UUID           string         `json:"uuid"`
@@ -126,8 +132,6 @@ func parseID(v any) string {
 		return fmt.Sprintf("%v", val)
 	}
 }
-
-// Normalizer functions.
 
 // NormalizeCalendar converts a TimeTree RawCalendar to a clean model.Calendar.
 func NormalizeCalendar(raw *RawCalendar) *Calendar {

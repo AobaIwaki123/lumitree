@@ -1,3 +1,4 @@
+// Package server implements OpenAPI compliant HTTP proxy server for lumitree.
 package server
 
 import (

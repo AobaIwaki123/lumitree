@@ -1,3 +1,4 @@
+// Package cache provides in-memory TTL caching mechanisms.
 package cache
 
 import (

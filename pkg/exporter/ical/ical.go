@@ -1,3 +1,4 @@
+// Package ical provides RFC 5545 compliant iCalendar generation for lumitree.
 package ical
 
 import (
