@@ -4,14 +4,16 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
   pull-requests: write
+  packages: write
 
 jobs:
   update-release-pr:
-    name: Create or Update Release PR
+    name: Create or Update Release PR & Pre-push Container Image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,8 +22,47 @@ jobs:
           fetch-depth: 0
 
       - name: Run sync-release-pr script
+        id: sync
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x scripts/sync-release-pr.sh
           ./scripts/sync-release-pr.sh
+
+      - name: Set up QEMU
+        if: steps.sync.outputs.tag != ''
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: steps.sync.outputs.tag != ''
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: steps.sync.outputs.tag != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Normalize Repository Name to Lowercase
+        if: steps.sync.outputs.tag != ''
+        id: repo
+        run: |
+          IMAGE_NAME="ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')"
+          echo "image=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and Pre-push Docker Release Image
+        if: steps.sync.outputs.tag != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.repo.outputs.image }}:${{ steps.sync.outputs.tag }}
+            ${{ steps.repo.outputs.image }}:latest
+            ${{ steps.repo.outputs.image }}:release
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
