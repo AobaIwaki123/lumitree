@@ -27,26 +27,36 @@ GORELEASER_ACTION_VER="v6"
 
 echo "⚙️ Synchronizing CI and Dockerfile configurations..."
 
-# Update CI Workflow
-if [[ -f ".github/workflows/ci.yml" ]]; then
-  sed -i '' "s/go-version: .*/go-version: '${TARGET_GO_VERSION}'/" .github/workflows/ci.yml || true
-  sed -i '' "s|uses: golangci/golangci-lint-action@.*|uses: golangci/golangci-lint-action@${GOLANGCI_LINT_ACTION_VER}|" .github/workflows/ci.yml || true
+safe_sed() {
+  local pattern="$1"
+  local file="$2"
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "$pattern" "$file"
+  else
+    sed -i "$pattern" "$file"
+  fi
+}
+
+# Update CI Go Workflow
+if [[ -f ".github/workflows/ci-go.yml" ]]; then
+  safe_sed "s/go-version: .*/go-version: '${TARGET_GO_VERSION}'/" .github/workflows/ci-go.yml
+  safe_sed "s|uses: golangci/golangci-lint-action@.*|uses: golangci/golangci-lint-action@${GOLANGCI_LINT_ACTION_VER}|" .github/workflows/ci-go.yml
 fi
 
 # Update Release Workflow
 if [[ -f ".github/workflows/release.yml" ]]; then
-  sed -i '' "s/go-version: .*/go-version: '${TARGET_GO_VERSION}'/" .github/workflows/release.yml || true
-  sed -i '' "s|uses: goreleaser/goreleaser-action@.*|uses: goreleaser/goreleaser-action@${GORELEASER_ACTION_VER}|" .github/workflows/release.yml || true
+  safe_sed "s/go-version: .*/go-version: '${TARGET_GO_VERSION}'/" .github/workflows/release.yml
+  safe_sed "s|uses: goreleaser/goreleaser-action@.*|uses: goreleaser/goreleaser-action@${GORELEASER_ACTION_VER}|" .github/workflows/release.yml
 fi
 
 # Update Live Monitor Workflow
 if [[ -f ".github/workflows/live-monitor.yml" ]]; then
-  sed -i '' "s/go-version: .*/go-version: '${TARGET_GO_VERSION}'/" .github/workflows/live-monitor.yml || true
+  safe_sed "s/go-version: .*/go-version: '${TARGET_GO_VERSION}'/" .github/workflows/live-monitor.yml
 fi
 
 # Update Dockerfile
 if [[ -f "Dockerfile" ]]; then
-  sed -i '' "s|FROM golang:.* AS builder|FROM golang:${TARGET_GO_VERSION}-alpine AS builder|" Dockerfile || true
+  safe_sed "s|FROM golang:.* AS builder|FROM golang:${TARGET_GO_VERSION}-alpine AS builder|" Dockerfile
 fi
 
 echo "🧪 Running tests to verify changes..."
