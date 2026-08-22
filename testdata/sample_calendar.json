@@ -1,0 +1,21 @@
+{
+  "public_calendar": {
+    "id": 46438,
+    "alias_code": "ilife_official",
+    "category": null,
+    "name": "iLiFE!",
+    "overview": "iLiFE!のスケジュールです。",
+    "images": {
+      "cover": {
+        "url": "https://attachments.timetreeapp.com/public_calendar/094b/2026-06-10/46438-1781070626714.jpg",
+        "thumbnail_url": "https://attachments.timetreeapp.com/public_calendar/094b/2026-06-10/46438-1781070626714.jpg"
+      }
+    },
+    "links": {
+      "facebook": "",
+      "twitter": "https://x.com/iLiFE_official",
+      "instagram": "https://instagram.com/ilife_official",
+      "website": "https://ilife.heroines.jp"
+    }
+  }
+}

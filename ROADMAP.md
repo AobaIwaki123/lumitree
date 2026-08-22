@@ -42,12 +42,12 @@ flowchart LR
 ### 🧪 Phase 1: CI基盤・テスト整備 & コア実装（CLI / Adapter）
 > **目的**: 運用に耐えうる可観測性（ログ・設定）とCIを備え、CLIツールとして完成させる。
 
-- [ ] **1-1. CI 基盤 & テストハーネスの構築**
+- [x] **1-1. CI 基盤 & テストハーネスの構築**
   - GitHub Actions ワークフロー (`.github/workflows/ci.yml`): `golangci-lint`, `go test -race -cover`
   - テスト用フィクスチャの準備 (`testdata/`) と モックサーバーによる要件テストの作成
-- [ ] **1-2. 設定管理 (Config) と 構造化ロギング (Observability) の導入**
+- [x] **1-2. 設定管理 (Config) と 構造化ロギング (Observability) の導入**
   - `log/slog` を用いた構造化ログの実装（JSON/Text）
-  - 環境変数ベースの設定注入（`kelseyhightower/envconfig` 等）: ログレベル、TTL、Port番号など
+  - 環境変数ベースの設定注入（`pkg/config`）: ログレベル、TTL、Port番号など
 - [ ] **1-3. TimeTree Adapter & 正規化ロジックの実装（TDD）**
   - CSRF/Cookie ハンドシェイク、HTTP クライアント
   - OpenAPI 仕様から生成したモデルへのマッピング
