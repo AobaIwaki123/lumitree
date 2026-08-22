@@ -1,4 +1,4 @@
-name: Build & Publish Container Image
+name: CI - Docker Publish
 
 on:
   push:
@@ -8,12 +8,10 @@ on:
       - 'release-stage/**'
     tags:
       - 'v*'
-    paths:
-      - 'Dockerfile'
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/docker-publish.yml'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
