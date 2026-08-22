@@ -1,6 +1,6 @@
 module github.com/AobaIwaki123/lumitree
 
-go 1.25.0
+go 1.23
 
 require (
 	github.com/getkin/kin-openapi v0.147.0
