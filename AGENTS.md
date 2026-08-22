@@ -20,7 +20,10 @@
 
 ---
 
-## 3. 品質基準 (Quality Gate)
+## 3. 品質基準 (Quality Gate) & CI-Green 原則
 
-- すべての PR は、GitHub Actions CI（`golangci-lint` および `go test -race`）が Green（PASS）であることを必須とします。
+- **CI が通るまで絶対にマージしない**:
+  - すべての PR は、GitHub Actions CI（`golangci-lint`、`go test -race`、`Schema Drift Check` 等）が 100% PASS (Green) することを確認するまで、**絶対にマージを行ってはなりません**。
+  - CI が `pending`（実行中）または `failure`（失敗）の状態でのマージは例外なく禁止します。
 - コードコメント（パッケージコメント、エクスポート型/関数のコメント）を適切に付与し、Linter 警告を 0 に保ちます。
+- コミット・Push 前に必ず `./scripts/verify-all.sh` をローカルで実行し、事前検証を徹底します。
