@@ -83,11 +83,11 @@ flowchart LR
 ### 🚀 Phase 3: OSS 体裁 & リリース自動化 (CI/CD)
 > **目的**: 個人開発の OSS としてオーバーエンジニアリングを避けつつ、自動化と信頼性を担保する。
 
-- [ ] **3-1. 自動ビルド & リリースノート (Tag-based Release)**
-  - Git-Flow のような複雑なリリースブランチは採用せず、`main` のタグトリガー（例: `v1.0.0`）による自動リリースを採用
+- [x] **3-1. 自動ビルド & リリースノート (Tag-based Release)**
+  - Git-Flow のような複雑なリリースブランチは採用せず、`main` のタグトリガー（例: `v1.0.0`）による自動リリースを採用 (\`.goreleaser.yaml\`, \`.github/workflows/release.yml\`)
   - GoReleaser によるマルチOSバイナリ自動生成 & GHCR コンテナ Push
-- [ ] **3-2. 非公式 API 防衛策: Live Monitoring (E2E 定期監視)**
-  - GitHub Actions の Cron (例: 1日1回) で、本番の TimeTree から実データを取得する E2E テストを実行
+- [x] **3-2. 非公式 API 防衛策: Live Monitoring (E2E 定期監視)**
+  - GitHub Actions の Cron (毎日 00:00 UTC) で、本番の TimeTree から実データを取得する E2E テストを実行 (\`.github/workflows/live-monitor.yml\`)
   - 仕様変更でパースが壊れた場合に即時検知して通知するカナリア運用の導入
-- [ ] **3-3. OSS ドキュメント整備**
-  - `README.md` (バッジ、QuickStart、Docker起動方法)、`LICENSE` (MIT)
+- [x] **3-3. OSS ドキュメント整備**
+  - \`README.md\` (バッジ、QuickStart、Docker起動方法)、\`LICENSE\` (MIT)
