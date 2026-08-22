@@ -88,7 +88,7 @@ docker run -d -p 8080:8080 --name lumitree lumitree:latest
 
 ### Kubernetes (Kustomize)
 ```bash
-kubectl apply -k k8s/
+kubectl apply -k k8s/manifests/
 ```
 
 ---

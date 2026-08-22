@@ -34,7 +34,7 @@ func TestClientGetCalendarAndEvents(t *testing.T) {
 				Path:  "/",
 			})
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write(pageHTML)
+			_, _ = w.Write(pageHTML)
 
 		case "/api/v2/public_calendars/ilife_official":
 			// Verify required headers
@@ -54,11 +54,11 @@ func TestClientGetCalendarAndEvents(t *testing.T) {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(calJSON)
+			_, _ = w.Write(calJSON)
 
 		case "/api/v2/public_calendars/ilife_official/public_events":
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(eventsJSON)
+			_, _ = w.Write(eventsJSON)
 
 		default:
 			http.NotFound(w, r)

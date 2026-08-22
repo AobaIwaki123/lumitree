@@ -2,17 +2,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: lumitree
+  namespace: lumitree
   labels:
-    app.kubernetes.io/name: lumitree
+    app: lumitree
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: lumitree
+      app: lumitree
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: lumitree
+        app: lumitree
     spec:
       securityContext:
         runAsNonRoot: true

@@ -1,15 +1,15 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: lumitree
-  labels:
-    app.kubernetes.io/name: lumitree
+  name: lumitree-ingress
+  namespace: lumitree
   annotations:
-    kubernetes.io/ingress.class: traefik
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
 spec:
+  ingressClassName: "cloudflare-tunnel"
   rules:
-    - host: lumitree.local
+    - host: lumitree.aooba.net
       http:
         paths:
           - path: /

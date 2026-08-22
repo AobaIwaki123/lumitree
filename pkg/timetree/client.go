@@ -110,7 +110,7 @@ func (c *Client) ensureSession(ctx context.Context, calendarID string) (string, 
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch initial calendar page: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("initial page returned HTTP %d %s", resp.StatusCode, resp.Status)
@@ -154,7 +154,7 @@ func (c *Client) GetCalendar(ctx context.Context, calendarID string) (*model.Cal
 	if err != nil {
 		return nil, fmt.Errorf("calendar API request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -202,7 +202,7 @@ func (c *Client) GetEvents(ctx context.Context, calendarID string, year, month, 
 	if err != nil {
 		return nil, fmt.Errorf("events API request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

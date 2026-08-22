@@ -138,7 +138,7 @@ func (s *Server) handleGetEventsICS(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 			w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s.ics\"", calendarID))
 			w.WriteHeader(http.StatusOK)
-			w.Write(icsBytes)
+			_, _ = w.Write(icsBytes)
 			return
 		}
 	}
@@ -161,7 +161,7 @@ func (s *Server) handleGetEventsICS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/calendar; charset=utf-8")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s.ics\"", calendarID))
 	w.WriteHeader(http.StatusOK)
-	w.Write(icsBytes)
+	_, _ = w.Write(icsBytes)
 }
 
 func (s *Server) writeError(w http.ResponseWriter, r *http.Request, status int, title, detail string) {
