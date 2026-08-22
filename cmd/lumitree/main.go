@@ -3,8 +3,10 @@ package main
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,6 +20,9 @@ import (
 	"github.com/AobaIwaki123/lumitree/pkg/server"
 	"github.com/AobaIwaki123/lumitree/pkg/timetree"
 )
+
+//go:embed web
+var webFS embed.FS
 
 var (
 	version = "dev"
@@ -91,7 +96,14 @@ func runServe(cfg *config.Config, args []string) {
 		os.Exit(1)
 	}
 
-	srv := server.NewServer(cfg, client, nil)
+	// Strip the "web" prefix so that http.FileServerFS serves index.html at /.
+	webSub, err := fs.Sub(webFS, "web")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to sub web fs: %v\n", err)
+		os.Exit(1)
+	}
+
+	srv := server.NewServer(cfg, client, nil, server.WithStaticFS(webSub))
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	fmt.Printf("Starting lumitree HTTP proxy server on %s ...\n", addr)
 
