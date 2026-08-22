@@ -4,6 +4,7 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -19,15 +20,22 @@ import (
 
 // Server is the HTTP server for lumitree proxy.
 type Server struct {
-	cfg    *config.Config
-	client *timetree.Client
-	cache  *cache.MemoryCache
-	logger *slog.Logger
-	mux    *http.ServeMux
+	cfg      *config.Config
+	client   *timetree.Client
+	cache    *cache.MemoryCache
+	logger   *slog.Logger
+	mux      *http.ServeMux
+	staticFS fs.FS // serves the web UI at GET /; nil disables the UI
+}
+
+// WithStaticFS sets the filesystem used to serve the web UI at GET /.
+// Pass the embedded web/ directory. If nil, the UI route is disabled.
+func WithStaticFS(fsys fs.FS) func(*Server) {
+	return func(s *Server) { s.staticFS = fsys }
 }
 
 // NewServer creates a new configured HTTP Server.
-func NewServer(cfg *config.Config, client *timetree.Client, logger *slog.Logger) *Server {
+func NewServer(cfg *config.Config, client *timetree.Client, logger *slog.Logger, opts ...func(*Server)) *Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -38,6 +46,9 @@ func NewServer(cfg *config.Config, client *timetree.Client, logger *slog.Logger)
 		cache:  cache.NewMemoryCache(cfg.CacheTTL),
 		logger: logger,
 		mux:    http.NewServeMux(),
+	}
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	s.routes()
@@ -51,6 +62,9 @@ func (s *Server) Handler() http.Handler {
 
 // routes registers all API routes.
 func (s *Server) routes() {
+	if s.staticFS != nil {
+		s.mux.Handle("GET /", http.FileServerFS(s.staticFS))
+	}
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
 	s.mux.HandleFunc("GET /api/v1/calendars/{calendarId}", s.handleGetCalendar)
 	s.mux.HandleFunc("GET /api/v1/calendars/{calendarId}/events", s.handleGetEvents)
