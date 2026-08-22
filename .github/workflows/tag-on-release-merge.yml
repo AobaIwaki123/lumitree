@@ -1,0 +1,40 @@
+name: Tag on Release Merge
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  tag-release:
+    name: Create Release Tag
+    # Only run if PR was merged and originated from a release/* branch
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract Tag Name
+        id: extract_tag
+        run: |
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          TAG_NAME="${BRANCH_NAME#release/}"
+          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Extracted tag: ${TAG_NAME}"
+
+      - name: Create and Push Tag
+        run: |
+          TAG="${{ steps.extract_tag.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+          echo "Successfully pushed tag ${TAG}!"
