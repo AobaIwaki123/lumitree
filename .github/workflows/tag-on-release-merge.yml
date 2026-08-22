@@ -5,36 +5,75 @@ on:
     types:
       - closed
     branches:
-      - main
+      - release
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
-  tag-release:
-    name: Create Release Tag
-    # Only run if PR was merged and originated from a release/* branch
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
+  tag-and-release:
+    name: Create Release Tag, Update K8s Manifest & Publish Release
+    # Only run if PR was merged into release branch
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: release
           fetch-depth: 0
 
-      - name: Extract Tag Name
-        id: extract_tag
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          check-latest: true
+          cache: false
+
+      - name: Calculate Next Version
+        id: version
         run: |
-          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
-          TAG_NAME="${BRANCH_NAME#release/}"
-          echo "tag=${TAG_NAME}" >> "$GITHUB_OUTPUT"
-          echo "Extracted tag: ${TAG_NAME}"
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          echo "Previous tag: ${PREV_TAG}"
+          CLEAN_VER=$(echo "$PREV_TAG" | sed -E 's/^(lumitree-)?v?//')
+          MAJOR=$(echo "$CLEAN_VER" | cut -d. -f1)
+          MINOR=$(echo "$CLEAN_VER" | cut -d. -f2)
+          PATCH=$(echo "$CLEAN_VER" | cut -d. -f3)
+          NEXT_MINOR=$((MINOR + 1))
+          NEXT_TAG="v${MAJOR}.${NEXT_MINOR}.0"
+          echo "tag=${NEXT_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Calculated next tag: ${NEXT_TAG}"
+
+      - name: Update Kubernetes Manifest Image Tags to Release Version
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          sed -i.bak -E "s|(image: ghcr\.io/aobaiwaki123/lumitree:).*|\1${TAG}|" k8s/manifests/deployment.yml
+          sed -i.bak -E "s/(newTag: ).*/\1${TAG}/" k8s/manifests/kustomization.yml
+          rm -f k8s/manifests/*.bak
+          
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add k8s/manifests/deployment.yml k8s/manifests/kustomization.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(release): bump k8s manifest image tag to ${TAG} [skip ci]"
+            git push origin release
+            echo "Successfully updated and pushed k8s manifests with tag ${TAG}."
+          fi
 
       - name: Create and Push Tag
         run: |
-          TAG="${{ steps.extract_tag.outputs.tag }}"
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="${{ steps.version.outputs.tag }}"
           git tag -a "${TAG}" -m "Release ${TAG}"
           git push origin "${TAG}"
           echo "Successfully pushed tag ${TAG}!"
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

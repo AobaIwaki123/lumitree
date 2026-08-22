@@ -1,0 +1,27 @@
+name: Sync & Update Release PR (main -> release)
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-release-pr:
+    name: Create or Update Release PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run sync-release-pr script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/sync-release-pr.sh
+          ./scripts/sync-release-pr.sh

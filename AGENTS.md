@@ -4,10 +4,11 @@
 
 ---
 
-## 1. Git & Pull Request 運用ルール
+## 1. Git & Pull Request & Worktree 運用ルール
 
 - **`main` ブランチへの直接コミットおよび直接 Push は禁止**します。
-- すべての変更（新機能、バグ修正、CI更新、ドキュメント修正等）は、必ず専用のトピックブランチを作成し、Pull Request（PR）を経由して行います。
+- **すべてのタスク作業は Git Worktree（`.worktrees/<branch-name>`）を作成して行います**。ルート作業領域（`main` 等）での直接作業は禁止します（`./scripts/worktree.sh create <branch-name>` を活用）。
+- すべての変更（新機能、バグ修正、CI更新、ドキュメント修正等）は、必ずトピックブランチを作成し、Pull Request（PR）を経由して行います。
 - 複数ステップの開発を行う場合は、親ブランチからの Stacked PR（積み上げ型 PR）として作成します。
 - **エージェントによる PR の自律的なマージ・クローズは禁止**します。PR 作成と CI（Lint / Test）の通過確認までを作業範囲とし、マージはユーザーのレビュー・判断に委ねます。
 
