@@ -51,22 +51,23 @@ NEXT_MINOR=$((MINOR + 1))
 NEXT_TAG="v${MAJOR}.${NEXT_MINOR}.0"
 echo "Calculated next release tag: ${NEXT_TAG}"
 
+git config user.name "github-actions[bot]" 2>/dev/null || true
+git config user.email "github-actions[bot]@users.noreply.github.com" 2>/dev/null || true
+
 STAGE_BRANCH="release-stage/${NEXT_TAG}"
 echo "Preparing staging branch: ${STAGE_BRANCH}..."
 
-# Create/reset staging branch from origin/main
-git checkout -B "$STAGE_BRANCH" origin/main
+# Create/reset staging branch from origin/release (ensures fast-forward & zero manifest conflict)
+git checkout -B "$STAGE_BRANCH" origin/release
 
-# Sync release branch to prevent manifest conflict
-git merge -X ours origin/release -m "chore: sync release into staging branch" 2>/dev/null || true
+# Merge all development changes from origin/main into staging branch
+echo "Merging origin/main into staging branch..."
+git merge -X theirs origin/main -m "chore: sync main into ${STAGE_BRANCH}"
 
 echo "Updating Kubernetes manifests to release version ${NEXT_TAG} on ${STAGE_BRANCH}..."
 sed -i.bak -E "s|(image: ghcr\.io/aobaiwaki123/lumitree:).*|\1${NEXT_TAG}|" k8s/manifests/deployment.yml
 sed -i.bak -E "s/(newTag: ).*/\1${NEXT_TAG}/" k8s/manifests/kustomization.yml
 rm -f k8s/manifests/*.bak
-
-git config user.name "github-actions[bot]" 2>/dev/null || true
-git config user.email "github-actions[bot]@users.noreply.github.com" 2>/dev/null || true
 
 git add k8s/manifests/deployment.yml k8s/manifests/kustomization.yml
 if ! git diff --cached --quiet; then

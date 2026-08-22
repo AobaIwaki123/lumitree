@@ -1,108 +1,105 @@
-# lumitree システムアーキテクチャ & 全体像
+# lumitree システムアーキテクチャ & GitOps 運用設計
 
-`lumitree` は、TimeTree の公開カレンダー情報を取得・標準化し、CLI、標準 iCalendar (.ics)、および OpenAPI 準拠の REST API として提供する軽量な Adapter / Bridge ツールです。
+本書では、`lumitree` の全体アーキテクチャ、内部コンポーネント設計、および GitHub Actions と ArgoCD を用いた **Shift-Left GitOps リリースサイクル** について解説します。
 
 ---
 
-## 1. 全体アーキテクチャ図 (System Overview)
+## 1. システム全体構成
+
+`lumitree` は、TimeTree 内部 API と各種クライアント（CLI、Google/Apple カレンダー、外部 REST API 消費者）の間を仲介するステートレスなプロキシ・アダプターです。
 
 ```mermaid
-flowchart TD
-    subgraph External["外部データソース"]
-        TT["TimeTree Public Calendar<br/>(非公式内部API / Web)"]
+graph TD
+    subgraph "Clients"
+        CLI["lumitree CLI (get / ics)"]
+        GCAL["Google / Apple Calendar (Webcal)"]
+        APP["External Services / Apps"]
     end
 
-    subgraph LumitreeApp["lumitree (Go実装 / シングルバイナリ / コンテナ)"]
-        Client["TimeTree Client<br/>(CSRF・Cookie・Header管理)"]
-        Cache["In-Memory TTL Cache<br/>(過負荷・BAN防止)"]
-        Normalizer["Data Normalizer<br/>(ISO8601 / JST変換)"]
-        ICS["iCalendar Exporter<br/>(RFC 5545 準拠 .ics 生成)"]
-        CLI["CLI Runner<br/>(get / ics / serve)"]
-        HTTPServer["HTTP Server<br/>(REST API / iCal配信 / healthz)"]
-
-        Client <--> Cache
-        Client --> Normalizer
-        Normalizer --> ICS
-        Normalizer --> CLI
-        ICS --> CLI
-        Normalizer --> HTTPServer
-        ICS --> HTTPServer
+    subgraph "lumitree Proxy Server (Kubernetes Pod / Local)"
+        API["HTTP Handler (Go stdlib / net/http)"]
+        CACHE["In-Memory TTL Cache (pkg/cache)"]
+        EXPORTER["iCalendar Exporter (pkg/exporter/ical)"]
+        CLIENT["TimeTree HTTP Client (pkg/timetree)"]
     end
 
-    subgraph Downstream["下流アプリケーション & 自宅インフラ"]
-        K8s["自宅 k8s クラスタ<br/>(ArgoCD / Ingress)"]
-        Discord["Discord / LINE Bot<br/>(イベント通知)"]
-        GCal["Google / Apple カレンダー<br/>(Webcal .ics 購読)"]
-        Portal["自作イベントポータル<br/>(REST API 連携)"]
+    subgraph "External Providers"
+        TT["TimeTree Public Web (timetreeapp.com)"]
     end
 
-    TT <-->|HTTPS / CSRF| Client
-    K8s -.->|ホスト & 運用| LumitreeApp
-    HTTPServer -->|REST JSON| Discord
-    HTTPServer -->|REST JSON| Portal
-    HTTPServer -->|webcal .ics| GCal
-    CLI -->|JSON / Pipe| Discord
+    CLI -->|Command Execution| CLIENT
+    GCAL -->|GET /api/v1/calendars/{id}/events.ics| API
+    APP -->|GET /api/v1/calendars/{id}/events| API
+
+    API --> EXPORTER
+    API --> CACHE
+    CACHE -->|Cache Miss| CLIENT
+    CLIENT -->|Cookie & CSRF Handshake| TT
 ```
 
 ---
 
-## 2. 責務の分離と境界線 (Separation of Concerns)
+## 2. コア設計原則
 
-| レイヤー | 責務（やること） | 責務外（やらないこと） |
+### ① CSRF / セッション自動ハンドシェイク
+TimeTree の内部 API は CSRF トークンと `_session_id` Cookie を要求します。`pkg/timetree` クライアントは初回アクセス時に公開ページ HTML を取得してトークンを抽出し、以降のリクエストに透過的に付与します。
+
+### ② In-Memory キャッシュによる負荷軽減
+同一カレンダーへのリクエストはデフォルトで 10 分間キャッシュされます。これにより、TimeTree 側への過度な負荷や IP レートリミット（429 Too Many Requests）を防止します。
+
+### ③ OpenAPI 3.0.3 駆動 (Schema-First)
+API インターフェースは `api/openapi.yaml` で一元定義され、`oapi-codegen` によって Go のクライアントコードが自動生成されます。CI の `Schema Drift Check` により、仕様書とコードの不整合が常に検出されます。
+
+---
+
+## 3. Shift-Left GitOps リリースサイクル (Pattern A)
+
+本プロジェクトでは、保護ブランチ（`main`, `release`）のセキュリティルールを一切緩和せず、自動化されたパイプラインで Kubernetes マニフェストのバージョンタグを更新・デプロイする **Shift-Left GitOps モデル** を採用しています。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as 開発者
+    participant Main as main ブランチ
+    participant Stage as release-stage/vX.Y.Z
+    participant RelPR as Release PR (#XX)
+    participant Rel as release ブランチ
+    participant GHCR as GitHub Packages (GHCR)
+    participant Argo as 自宅 Kubernetes (ArgoCD)
+
+    Dev->>Main: 機能 PR をマージ
+    Main->>Stage: release-pr.yml が起動 (最新タグから次期バージョン vX.Y.Z を計算)
+    Stage->>Stage: マニフェストタグ (k8s/manifests) を vX.Y.Z に自動更新
+    Stage->>RelPR: Release PR を自動起票 / 自動更新 (コンフリクト 0 件)
+
+    Note over Dev,RelPR: リリース準備完了 (PR レビュー & 承認)
+
+    Dev->>Rel: Release PR をマージ
+    Rel->>Rel: tag-on-release-merge.yml が起動
+    Rel->>Rel: Git タグ (vX.Y.Z) を自動発行 & GoReleaser でバイナリ配布
+    Rel->>GHCR: コンテナイメージ (ghcr.io/...:vX.Y.Z) を自動 Push
+    Rel->>Stage: 一時ステージングブランチを自動削除
+
+    Note over Argo,Rel: GitOps 自動同期 & ローリングアップデート
+    Argo->>Rel: release ブランチの変更 (vX.Y.Z) を検知
+    Argo->>GHCR: 新規イメージ (vX.Y.Z) を Pull して Pod を無停止更新
+```
+
+---
+
+## 4. Kubernetes デプロイメント構成
+
+自宅 Kubernetes クラスタ上でのリソース構成は以下の通りです：
+
+| リソース | Namespace | 説明 |
 | :--- | :--- | :--- |
-| **lumitree (本プロジェクト)** | ・TimeTree 内部APIとのハンドシェイク・通信<br/>・データ正規化（ISO8601/JSTへの統一）<br/>・標準 iCal (`.ics`) / JSON 出力<br/>・OpenAPI 準拠のキャッシュ付き HTTP Proxy<br/>・自宅 k8s 用コンテナ提供 | ・Discord / LINE の通知・Bot ロジック<br/>・Google Calendar OAuth 認証<br/>・ポータルサイト用 DB 保存や UI 実装 |
-| **下流アプリ (Bot / Portal)** | ・ユーザー向け通知、UI描画、独自DB管理 | ・TimeTree 固有の通信・CSRF解析 |
-| **カレンダーアプリ (GCal/Apple)** | ・`.ics` URL を定期フェッチして予定表示 | ・自前でのデータスクレイピング |
+| `Deployment` | `lumitree` | `ghcr.io/aobaiwaki123/lumitree:vX.Y.Z` (Distroless, 非特権ユーザー `nonroot:nonroot`) |
+| `Service` | `lumitree` | ClusterIP (Port 8080) |
+| `ConfigMap` | `lumitree` | ログ設定、キャッシュ TTL、サーバーポート |
+| `Application` | `argocd` | GitOps 同期設定 (`targetRevision: release`, `selfHeal: true`, `prune: true`) |
 
----
-
-## 3. データフロー
-
-### ① CLI スタンドアロン実行時
+### 実稼働検証コマンド
+```bash
+./scripts/verify-deploy.sh
 ```
-[User / Cron] 
-      │
-      ▼ (lumitree ics ilife_official)
-[CLI] ──► [Client] ──► [TimeTree HTML (CSRF)] ──► [TimeTree API]
-                            │
-                            ▼ (Raw JSON)
-                      [Normalizer] ──► [ICS Exporter] ──► [Stdout / File (.ics)]
-```
-
-### ② HTTP Server (自宅 k8s デプロイ時)
-```
-[Google Calendar / Discord Bot / Web Portal]
-      │
-      ▼ (GET /api/v1/calendars/ilife_official/events.ics)
-[HTTP Server (lumitree serve)]
-      │
-   [Cache Check] ──(Hit)──► [Return Cached .ics (Fast)]
-      │ (Miss)
-      ▼
-[Client (Handshake & Fetch)] ──► [TimeTree]
-      │
-      ▼ (Normalize & Generate)
-[Save to Cache] ──► [Return 200 OK + Content-Type: text/calendar]
-```
-
----
-
-## 4. 設計上のトレードオフと決定事項 (ADR)
-
-本プロジェクトにおける重要な設計上の決定（Architecture Decision Record）と、そのトレードオフを以下に整理します。
-
-### 4.1. In-Memory TTL Cache の採用
-- **決定**: Redis などの外部キャッシュストアを用いず、Go プロセス内のメモリ上でキャッシュ（`sync.RWMutex` + `map` 等）を管理する。
-- **メリット**: 外部依存（ミドルウェア）がなく、シングルバイナリとして極めて軽量に稼働する。デプロイ構成がシンプルになる。
-- **デメリット**: Kubernetes 等で Pod を複数起動（スケールアウト）した場合、キャッシュが共有されず、Pod の数だけ TimeTree へのフェッチが発生する。
-- **評価**: 個人運用の k8s であり、Replica 1 での運用が前提のため、このデメリットは許容可能（YAGNI原則）。
-
-### 4.2. OpenAPI とコードの同期 (Code Generation)
-- **決定**: `api/openapi.yaml` を正と扱い、`oapi-codegen` 等を用いて Go の型定義や HTTP ハンドラインターフェースを自動生成する。
-- **メリット**: スキーマと実装の乖離を防ぎ、実装時の「迷子」をなくす。
-- **デメリット**: ビルドチェーンにツール依存が増える。
-- **評価**: APIプロキシとしての責務を果たす上では、スキーマファースト開発の恩恵が圧倒的に大きいため採用。
-
-### 4.3. 非公式API利用に伴うリスクへの防衛策
-- **決定**: TimeTree の内部 Web API は予告なく変更されるリスクがあるため、定期的な Live Monitoring（結合テスト）を運用基盤に組み込む。
-- **対策**: GitHub Actions の Cron を用いて、1日1回など定期的に実際の TimeTree カレンダーに対して CLI で取得を試み、パースに失敗した場合に即時通知する仕組み（E2E カナリアテスト）を導入する。
+このスクリプトは ArgoCD の同期状態、Pod の稼働状態、`/healthz` 疎通、REST API 疎通、iCalendar 出力疎通を自動で一括テストします。
