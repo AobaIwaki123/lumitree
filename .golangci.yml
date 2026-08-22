@@ -10,6 +10,8 @@ linters:
     - staticcheck
     - unused
     - revive
+    - nilerr
+    - errorlint
 
 linters-settings:
   revive:
