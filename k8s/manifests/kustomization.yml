@@ -8,4 +8,4 @@ resources:
 
 images:
   - name: ghcr.io/aobaiwaki123/lumitree
-    newTag: v1.4.0
+    newTag: v1.5.0
