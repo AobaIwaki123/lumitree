@@ -4,6 +4,79 @@
 
 ---
 
+## 0. リポジトリ概要
+
+### プロジェクト情報
+
+| 項目 | 内容 |
+| :--- | :--- |
+| リポジトリ | `github.com/AobaIwaki123/lumitree` |
+| 言語 | Go 1.23 |
+| ライセンス | MIT |
+| コンテナレジストリ | `ghcr.io/aobaiwaki123/lumitree` |
+
+**概要**: TimeTree の公開カレンダー情報を取得・標準化し、CLI / iCalendar (.ics) / OpenAPI 準拠 REST API として提供する Go 製の軽量 Adapter / Proxy ツール。
+
+### ディレクトリ構成
+
+```
+lumitree/
+├── api/                  # OpenAPI 仕様 (openapi.yaml) と oapi-codegen 設定
+├── cmd/lumitree/         # エントリポイント (main.go)
+├── pkg/
+│   ├── api/              # oapi-codegen 自動生成クライアント (lumitree.gen.go)
+│   ├── cache/            # In-Memory TTL キャッシュ
+│   ├── config/           # 設定値 (環境変数・CLI フラグ)
+│   ├── exporter/         # iCalendar (.ics) エクスポーター
+│   ├── logger/           # 構造化ロガー
+│   ├── model/            # 共通データモデル
+│   ├── server/           # HTTP ハンドラ / REST API サーバー
+│   └── timetree/         # TimeTree 内部 API クライアント (CSRF/セッション処理)
+├── k8s/
+│   ├── manifests/        # Kubernetes マニフェスト (kustomize)
+│   └── argocd/           # ArgoCD Application 定義
+├── docs/                 # 設計ドキュメント (architecture.md)
+├── spec/                 # API マッピング仕様 (mapping.md)
+├── scripts/              # 開発・運用補助スクリプト
+├── testdata/             # テスト用フィクスチャ
+└── tools/                # 開発ツール定義
+```
+
+### 主要スクリプト
+
+| スクリプト | 用途 |
+| :--- | :--- |
+| `./scripts/worktree.sh create <branch>` | Git Worktree を作成してタスク作業領域を準備する |
+| `./scripts/verify-all.sh` | lint / test / Schema Drift Check を一括実行（Push 前に必ず実行） |
+| `./scripts/verify-deploy.sh` | Kubernetes 上の実稼働状態（ArgoCD / Pod / API 疎通）を一括検証する |
+| `./scripts/create-release-pr.sh` | リリース PR を手動で起票する |
+| `./scripts/sync-release-pr.sh` | リリース PR に最新の変更を同期する |
+| `./scripts/update-deps.sh` | Go モジュール依存関係を更新する |
+
+### CI/CD ワークフロー
+
+| ワークフロー | トリガー | 内容 |
+| :--- | :--- | :--- |
+| `ci.yml` | PR / push | `golangci-lint` + `go test -race` + Schema Drift Check |
+| `docker-publish.yml` | `release` ブランチへの push | コンテナイメージのビルド・GHCR Push |
+| `release-pr.yml` | `main` ブランチへの push | リリース用ステージングブランチと PR を自動生成 |
+| `tag-on-release-merge.yml` | `release` ブランチへのマージ | Git タグ発行・GoReleaser によるバイナリ配布 |
+| `release.yml` | タグ push | GoReleaser によるリリース成果物の公開 |
+| `live-monitor.yml` | スケジュール | 本番 API の死活監視 |
+
+### コード生成
+
+API クライアントは Schema-First で管理されており、手動編集禁止のファイルが存在します。
+
+```bash
+# api/openapi.yaml を変更したら必ず再生成する
+go generate ./...
+```
+
+生成対象: `pkg/api/lumitree.gen.go`（`oapi-codegen` による自動生成）
+
+---
+
 ## 1. Git & Pull Request & Worktree 運用ルール
 
 - **`main` ブランチへの直接コミットおよび直接 Push は禁止**します。
