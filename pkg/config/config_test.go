@@ -7,14 +7,14 @@ import (
 )
 
 func TestLoadDefaults(t *testing.T) {
-	// Clear envs
-	os.Unsetenv("LUMITREE_PORT")
-	os.Unsetenv("PORT")
-	os.Unsetenv("LUMITREE_HOST")
-	os.Unsetenv("LUMITREE_CACHE_TTL")
-	os.Unsetenv("LUMITREE_LOG_LEVEL")
-	os.Unsetenv("LUMITREE_LOG_FORMAT")
-	os.Unsetenv("LUMITREE_TIMETREE_BASE_URL")
+	// Clear envs safely
+	_ = os.Unsetenv("LUMITREE_PORT")
+	_ = os.Unsetenv("PORT")
+	_ = os.Unsetenv("LUMITREE_HOST")
+	_ = os.Unsetenv("LUMITREE_CACHE_TTL")
+	_ = os.Unsetenv("LUMITREE_LOG_LEVEL")
+	_ = os.Unsetenv("LUMITREE_LOG_FORMAT")
+	_ = os.Unsetenv("LUMITREE_TIMETREE_BASE_URL")
 
 	cfg := Load()
 
@@ -39,21 +39,12 @@ func TestLoadDefaults(t *testing.T) {
 }
 
 func TestLoadFromEnv(t *testing.T) {
-	os.Setenv("LUMITREE_PORT", "9090")
-	os.Setenv("LUMITREE_HOST", "127.0.0.1")
-	os.Setenv("LUMITREE_CACHE_TTL", "30m")
-	os.Setenv("LUMITREE_LOG_LEVEL", "debug")
-	os.Setenv("LUMITREE_LOG_FORMAT", "json")
-	os.Setenv("LUMITREE_TIMETREE_BASE_URL", "http://mock-server:8000")
-
-	defer func() {
-		os.Unsetenv("LUMITREE_PORT")
-		os.Unsetenv("LUMITREE_HOST")
-		os.Unsetenv("LUMITREE_CACHE_TTL")
-		os.Unsetenv("LUMITREE_LOG_LEVEL")
-		os.Unsetenv("LUMITREE_LOG_FORMAT")
-		os.Unsetenv("LUMITREE_TIMETREE_BASE_URL")
-	}()
+	t.Setenv("LUMITREE_PORT", "9090")
+	t.Setenv("LUMITREE_HOST", "127.0.0.1")
+	t.Setenv("LUMITREE_CACHE_TTL", "30m")
+	t.Setenv("LUMITREE_LOG_LEVEL", "debug")
+	t.Setenv("LUMITREE_LOG_FORMAT", "json")
+	t.Setenv("LUMITREE_TIMETREE_BASE_URL", "http://mock-server:8000")
 
 	cfg := Load()
 
