@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -110,6 +111,14 @@ func (s *Server) handleGetEvents(w http.ResponseWriter, r *http.Request) {
 	calendarID := r.PathValue("calendarId")
 	if calendarID == "" {
 		s.writeError(w, r, http.StatusBadRequest, "Invalid Calendar ID", "calendarId path parameter is required")
+		return
+	}
+
+	fromStr := r.URL.Query().Get("from")
+	toStr := r.URL.Query().Get("to")
+
+	if fromStr != "" && toStr != "" {
+		s.handleGetEventsRange(w, r, calendarID, fromStr, toStr)
 		return
 	}
 
@@ -223,4 +232,111 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 			"remote_addr", r.RemoteAddr,
 		)
 	})
+}
+
+func (s *Server) handleGetEventsRange(w http.ResponseWriter, r *http.Request, calendarID, fromStr, toStr string) {
+	cacheKey := fmt.Sprintf("events_range:%s:%s:%s", calendarID, fromStr, toStr)
+	if cached, ok := s.cache.Get(cacheKey); ok {
+		if eventList, ok := cached.(*model.EventListResponse); ok {
+			writeJSON(w, http.StatusOK, eventList)
+			return
+		}
+	}
+
+	jst, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		jst = time.FixedZone("JST", 9*60*60)
+	}
+
+	fromTime, err := time.ParseInLocation("2006-01-02", fromStr, jst)
+	if err != nil {
+		s.writeError(w, r, http.StatusBadRequest, "Invalid Parameter", "from format must be YYYY-MM-DD")
+		return
+	}
+	toTime, err := time.ParseInLocation("2006-01-02", toStr, jst)
+	if err != nil {
+		s.writeError(w, r, http.StatusBadRequest, "Invalid Parameter", "to format must be YYYY-MM-DD")
+		return
+	}
+
+	// Make sure toTime covers the whole day
+	endOfDay := time.Date(toTime.Year(), toTime.Month(), toTime.Day(), 23, 59, 59, 999999999, jst)
+
+	type ym struct{ y, m int }
+	var months []ym
+
+	curr := time.Date(fromTime.Year(), fromTime.Month(), 1, 0, 0, 0, 0, jst)
+	endMonth := time.Date(toTime.Year(), toTime.Month(), 1, 0, 0, 0, 0, jst)
+
+	for !curr.After(endMonth) {
+		months = append(months, ym{curr.Year(), int(curr.Month())})
+		curr = curr.AddDate(0, 1, 0)
+	}
+
+	var allEvents []*model.Event
+	var cal *model.Calendar
+
+	for _, m := range months {
+		resp, err := s.client.GetEvents(r.Context(), calendarID, m.y, m.m, 1)
+		if err != nil {
+			s.logger.ErrorContext(r.Context(), "failed to fetch events for range", "calendar_id", calendarID, "year", m.y, "month", m.m, "error", err)
+			s.writeError(w, r, http.StatusBadGateway, "Upstream Error", fmt.Sprintf("Failed to fetch events from TimeTree: %v", err))
+			return
+		}
+		if cal == nil {
+			cal = resp.Calendar
+		}
+		allEvents = append(allEvents, resp.Events...)
+
+		if resp.Pagination != nil && resp.Pagination.TotalPages > 1 {
+			for p := 2; p <= resp.Pagination.TotalPages; p++ {
+				pResp, err := s.client.GetEvents(r.Context(), calendarID, m.y, m.m, p)
+				if err != nil {
+					s.logger.ErrorContext(r.Context(), "failed to fetch events for range page", "calendar_id", calendarID, "year", m.y, "month", m.m, "page", p, "error", err)
+					s.writeError(w, r, http.StatusBadGateway, "Upstream Error", fmt.Sprintf("Failed to fetch events from TimeTree: %v", err))
+					return
+				}
+				allEvents = append(allEvents, pResp.Events...)
+			}
+		}
+	}
+
+	// Remove duplicates (possible if same event appears in multiple pages or months though unlikely)
+	seen := make(map[string]bool)
+	var uniqueEvents []*model.Event
+	for _, e := range allEvents {
+		if !seen[e.ID] {
+			seen[e.ID] = true
+			uniqueEvents = append(uniqueEvents, e)
+		}
+	}
+
+	var filtered []*model.Event
+	for _, e := range uniqueEvents {
+		if (e.StartAt.After(fromTime) || e.StartAt.Equal(fromTime)) &&
+			(e.StartAt.Before(endOfDay) || e.StartAt.Equal(endOfDay)) {
+			filtered = append(filtered, e)
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].StartAt.Before(filtered[j].StartAt)
+	})
+
+	if cal == nil {
+		cal = &model.Calendar{ID: calendarID, AliasCode: calendarID, Title: calendarID}
+	}
+
+	res := &model.EventListResponse{
+		Calendar: cal,
+		Events:   filtered,
+		Pagination: &model.Pagination{
+			CurrentPage: 1,
+			TotalPages:  1,
+			TotalCount:  len(filtered),
+		},
+	}
+
+	s.cache.Set(cacheKey, res)
+	writeJSON(w, http.StatusOK, res)
 }
