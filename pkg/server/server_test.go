@@ -152,3 +152,76 @@ func TestServerUIRoute(t *testing.T) {
 		}
 	})
 }
+
+func TestServerEventsRange(t *testing.T) {
+	handler, cleanup := newTestServer(t)
+	defer cleanup()
+
+	// 1. 同月内の範囲指定 (Aug 25)
+	t.Run("GET /api/v1/calendars/ilife_official/events?from=2026-08-20&to=2026-08-30", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/calendars/ilife_official/events?from=2026-08-20&to=2026-08-30", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+		
+		body := rec.Body.String()
+		if !strings.Contains(body, "event-uuid-0001") {
+			t.Errorf("expected event-uuid-0001 in response, got %s", body)
+		}
+		if strings.Contains(body, "event-uuid-0002") {
+			t.Errorf("did not expect event-uuid-0002 in response, got %s", body)
+		}
+	})
+
+	// 2. 月またぎの範囲指定 (Aug 25 - Sep 27)
+	t.Run("GET /api/v1/calendars/ilife_official/events?from=2026-08-20&to=2026-09-30", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/calendars/ilife_official/events?from=2026-08-20&to=2026-09-30", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		if !strings.Contains(body, "event-uuid-0001") {
+			t.Errorf("expected event-uuid-0001 in response")
+		}
+		if !strings.Contains(body, "event-uuid-0002") {
+			t.Errorf("expected event-uuid-0002 in response")
+		}
+	})
+
+	// 3. 境界値テスト: to の境界 (Aug 25のみ含まれる、Sep 27はギリギリ含まれない)
+	t.Run("GET /api/v1/calendars/ilife_official/events?from=2026-08-25&to=2026-09-26", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/calendars/ilife_official/events?from=2026-08-25&to=2026-09-26", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Errorf("expected 200, got %d", rec.Code)
+		}
+
+		body := rec.Body.String()
+		if !strings.Contains(body, "event-uuid-0001") {
+			t.Errorf("expected event-uuid-0001 in response")
+		}
+		if strings.Contains(body, "event-uuid-0002") {
+			t.Errorf("did not expect event-uuid-0002 in response")
+		}
+	})
+
+	// 4. 不正な日付フォーマット
+	t.Run("GET /api/v1/calendars/ilife_official/events?from=invalid&to=2026-09-30", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/calendars/ilife_official/events?from=invalid&to=2026-09-30", nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusBadRequest {
+			t.Errorf("expected 400, got %d", rec.Code)
+		}
+	})
+}

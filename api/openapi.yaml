@@ -79,6 +79,22 @@ paths:
             minimum: 1
             maximum: 12
             example: 8
+        - name: from
+          in: query
+          description: "取得開始日 (YYYY-MM-DD)"
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2026-08-31"
+        - name: to
+          in: query
+          description: "取得終了日 (YYYY-MM-DD)"
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2026-09-02"
         - name: page
           in: query
           description: "ページ番号"
