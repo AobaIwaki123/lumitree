@@ -73,7 +73,15 @@ lumitree get ilife_official --year 2026 --month 8 --page 1
 lumitree get ilife_official --json | jq '.events[] | {title: .title, start: .start_at}'
 ```
 
-### 2. iCalendar (.ics) ファイルのエクスポート (`ics`)
+### 2. lumi-spec event feed の取得 (`candidate`)
+
+TimeTree固有のレスポンスではなく、他のlumiサービスと共通の`event.feed.v1`を標準出力へ出します。イベント説明文や構造化URLから見つかったチケット・関連ページは各候補の`links`に含まれます。
+
+```bash
+lumitree candidate ilife_official --year 2026 --month 8 --page 1
+```
+
+### 3. iCalendar (.ics) ファイルのエクスポート (`ics`)
 
 ```bash
 # 標準出力へ出力
