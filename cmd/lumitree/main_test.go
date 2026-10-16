@@ -155,6 +155,23 @@ func TestRunGet_Table(t *testing.T) {
 	}
 }
 
+func TestRunCandidate_JSON(t *testing.T) {
+	ts := mockTimeTreeServer(t)
+	defer ts.Close()
+
+	cfg := &config.Config{TimeTreeBaseURL: ts.URL}
+	out := captureStdout(func() {
+		runCandidate(cfg, []string{"test_cal", "--year", "2026", "--month", "8", "--page", "1"})
+	})
+
+	if !strings.Contains(out, `"schema_version": "lumi.event.feed.v1"`) {
+		t.Errorf("expected event feed schema in output, got: %s", out)
+	}
+	if !strings.Contains(out, `"title": "Live Show 2026"`) || !strings.Contains(out, `"kind": "official"`) {
+		t.Errorf("expected normalized event and link in output, got: %s", out)
+	}
+}
+
 func TestRunICS(t *testing.T) {
 	ts := mockTimeTreeServer(t)
 	defer ts.Close()
