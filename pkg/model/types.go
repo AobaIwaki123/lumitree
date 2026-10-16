@@ -3,10 +3,16 @@ package model
 
 import (
 	"fmt"
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/AobaIwaki123/lumi-spec/event"
 )
+
+var eventURLPattern = regexp.MustCompile(`https?://[^\s<>"'。、！？（）「」『』【】]+`)
 
 // Calendar represents normalized calendar metadata.
 type Calendar struct {
@@ -38,6 +44,17 @@ type Event struct {
 	Location    *string   `json:"location,omitempty"`
 	URL         *string   `json:"url,omitempty"`
 	ImageURLs   []string  `json:"imageUrls,omitempty"`
+	Links       []Link    `json:"links,omitempty"`
+}
+
+// Link is an additional URL discovered while normalizing a TimeTree event.
+// URL remains the source record's primary URL; Links preserves ticket and
+// related destinations found in the event description.
+type Link struct {
+	Kind   string `json:"kind"`
+	URL    string `json:"url"`
+	Label  string `json:"label,omitempty"`
+	Origin string `json:"origin,omitempty"`
 }
 
 // Pagination metadata.
@@ -263,6 +280,8 @@ func NormalizeEvent(raw *RawEvent) *Event {
 		}
 	}
 
+	links := extractLinks(desc, urlPtr)
+
 	return &Event{
 		ID:          parseID(raw.ID),
 		UUID:        raw.UUID,
@@ -275,5 +294,113 @@ func NormalizeEvent(raw *RawEvent) *Event {
 		Location:    locPtr,
 		URL:         urlPtr,
 		ImageURLs:   imageURLs,
+		Links:       links,
 	}
+}
+
+func extractLinks(description string, primaryURL *string) []Link {
+	links := make([]Link, 0, 1)
+	seen := make(map[string]struct{})
+	add := func(rawURL, label, origin string) {
+		rawURL = cleanURL(rawURL)
+		if rawURL == "" {
+			return
+		}
+		parsed, err := url.Parse(rawURL)
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
+			return
+		}
+		key := strings.ToLower(rawURL)
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		kind := classifyLink(rawURL, label)
+		if origin == "structured_url" && kind == "related" {
+			kind = "official"
+		}
+		links = append(links, Link{Kind: kind, URL: rawURL, Label: strings.TrimSpace(label), Origin: origin})
+	}
+	if primaryURL != nil {
+		add(*primaryURL, "", "structured_url")
+	}
+	for _, rawURL := range eventURLPattern.FindAllString(description, -1) {
+		add(rawURL, descriptionContext(description, rawURL), "description")
+	}
+	return links
+}
+
+func cleanURL(rawURL string) string {
+	return strings.TrimRight(strings.TrimSpace(rawURL), ".,!?;:。、)]}〉》」』】")
+}
+
+func descriptionContext(description, rawURL string) string {
+	index := strings.Index(description, rawURL)
+	if index < 0 {
+		return ""
+	}
+	start := index - 20
+	if start < 0 {
+		start = 0
+	}
+	return strings.TrimSpace(description[start:index])
+}
+
+func classifyLink(rawURL, label string) string {
+	parsed, _ := url.Parse(rawURL)
+	host := strings.ToLower(strings.TrimPrefix(parsed.Hostname(), "www."))
+	text := strings.ToLower(label + " " + rawURL)
+	if strings.Contains(text, "ticket") || strings.Contains(text, "チケット") || strings.Contains(text, "受付") || strings.Contains(text, "販売") || strings.Contains(text, "先行") || strings.Contains(text, "一般発売") {
+		return "ticket"
+	}
+	switch host {
+	case "ticketdive.com", "t-dv.com", "tiget.net", "eplus.jp", "l-tike.com", "livepocket.jp", "passmarket.yahoo.co.jp", "ticketpay.jp", "teket.jp":
+		return "ticket"
+	case "x.com", "twitter.com", "instagram.com", "tiktok.com", "youtube.com", "youtu.be", "twitch.tv":
+		return "social"
+	}
+	if strings.Contains(text, "公式") || strings.Contains(text, "official") || strings.Contains(text, "ホームページ") || strings.Contains(text, "website") {
+		return "official"
+	}
+	return "related"
+}
+
+// ToEventCandidate maps one normalized TimeTree event to lumi-spec.
+func ToEventCandidate(calendarID string, item *Event) event.Candidate {
+	if item == nil {
+		return event.Candidate{}
+	}
+	localDate := item.StartAt.Format("2006-01-02")
+	recordURL := ""
+	if item.URL != nil {
+		recordURL = *item.URL
+	}
+	links := make([]event.Link, 0, len(item.Links))
+	for _, link := range item.Links {
+		links = append(links, event.Link{Kind: link.Kind, URL: link.URL, Label: link.Label, Origin: link.Origin})
+	}
+	return event.Candidate{
+		SchemaVersion: event.CandidateSchemaVersion,
+		ID:            "lumitree:" + item.ID,
+		SourceRef: event.SourceRef{
+			Source:       "lumitree",
+			RecordID:     item.ID,
+			URL:          recordURL,
+			CollectionID: calendarID,
+		},
+		Title:     item.Title,
+		LocalDate: localDate,
+		StartsAt:  item.StartAt.Format(time.RFC3339),
+		EndsAt:    item.EndAt.Format(time.RFC3339),
+		Timezone:  item.Timezone,
+		Venue:     stringValue(item.Location),
+		Links:     links,
+	}
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
 }

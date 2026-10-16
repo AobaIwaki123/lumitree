@@ -45,6 +45,12 @@ lumitree get ilife_official
 
 ターミナルに直近のイベント一覧が美しくテーブル表示されます。
 
+他のlumiサービスと共通のイベントfeedとして利用する場合は、`candidate`を使います。
+
+```bash
+lumitree candidate ilife_official --year 2026 --month 8 --page 1
+```
+
 ### 3. iCalendar (.ics) ファイルを生成
 ```bash
 lumitree ics ilife_official -o my_calendar.ics

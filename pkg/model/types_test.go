@@ -74,6 +74,13 @@ func TestNormalizeEvent(t *testing.T) {
 	if len(ev1.ImageURLs) != 1 {
 		t.Errorf("expected 1 ImageURL, got %d", len(ev1.ImageURLs))
 	}
+	if len(ev1.Links) != 1 || ev1.Links[0].Kind != "official" || ev1.Links[0].URL != "https://heroines.jp/news/public/_/8txp75btlwrhdofl.html" {
+		t.Errorf("expected structured event link, got '%+v'", ev1.Links)
+	}
+	candidate := ToEventCandidate("ilife_official", ev1)
+	if candidate.ID != "lumitree:3012407381357599548" || candidate.SourceRef.CollectionID != "ilife_official" || len(candidate.Links) != 1 {
+		t.Errorf("candidate = %#v", candidate)
+	}
 
 	ev2 := NormalizeEvent(&raw.PublicEvents[1])
 	if ev2.ID != "3012407381357599549" {
@@ -81,5 +88,29 @@ func TestNormalizeEvent(t *testing.T) {
 	}
 	if !ev2.AllDay {
 		t.Error("expected AllDay=true")
+	}
+}
+
+func TestNormalizeEventExtractsDescriptionLinks(t *testing.T) {
+	primaryURL := "https://ticketdive.com/event/example"
+	description := "🎫 チケット https://tiget.net/events/123。詳細 https://example.com/info。"
+	raw := RawEvent{
+		ID:          "event-links",
+		Title:       "Event with links",
+		Description: &description,
+		StartAt:     1792278000000,
+		EndAt:       1792281600000,
+		StartTimezone: func() *string {
+			value := "Asia/Tokyo"
+			return &value
+		}(),
+		LinkURL: &primaryURL,
+	}
+	event := NormalizeEvent(&raw)
+	if len(event.Links) != 3 {
+		t.Fatalf("links = %#v", event.Links)
+	}
+	if event.Links[0].Kind != "ticket" || event.Links[1].Kind != "ticket" || event.Links[2].Kind != "related" {
+		t.Fatalf("links = %#v", event.Links)
 	}
 }

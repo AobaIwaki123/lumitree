@@ -47,6 +47,8 @@ func main() {
 		runServe(cfg, args)
 	case "get":
 		runGet(cfg, args)
+	case "candidate":
+		runCandidate(cfg, args)
 	case "ics":
 		runICS(cfg, args)
 	case "version":
@@ -66,6 +68,7 @@ func printUsage() {
 	fmt.Println("Commands:")
 	fmt.Println("  serve               Start the HTTP webcal / OpenAPI proxy server")
 	fmt.Println("  get <calendar-id>   Fetch and display events for a TimeTree calendar")
+	fmt.Println("  candidate <calendar-id> Fetch events as a lumi-spec event feed")
 	fmt.Println("  ics <calendar-id>   Export calendar events to an RFC 5545 iCalendar (.ics) file")
 	fmt.Println("  version             Print version and build information")
 	fmt.Println("  help                Show this help message")
@@ -132,6 +135,8 @@ func runGet(cfg *config.Config, args []string) {
 	calendarID := args[0]
 	isJSON := false
 	year := time.Now().Year()
+	month := 0
+	page := 1
 
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
@@ -145,6 +150,20 @@ func runGet(cfg *config.Config, args []string) {
 				}
 				i++
 			}
+		case "--month":
+			if i+1 < len(args) {
+				if m, err := strconv.Atoi(args[i+1]); err == nil {
+					month = m
+				}
+				i++
+			}
+		case "--page":
+			if i+1 < len(args) {
+				if p, err := strconv.Atoi(args[i+1]); err == nil && p > 0 {
+					page = p
+				}
+				i++
+			}
 		}
 	}
 
@@ -155,7 +174,7 @@ func runGet(cfg *config.Config, args []string) {
 	}
 
 	ctx := context.Background()
-	eventList, err := client.GetEvents(ctx, calendarID, year, 0, 1)
+	eventList, err := client.GetEvents(ctx, calendarID, year, month, page)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to get events: %v\n", err)
 		os.Exit(1)
@@ -193,6 +212,62 @@ func runGet(cfg *config.Config, args []string) {
 		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", startStr, endStr, ev.Title, locStr)
 	}
 	_ = w.Flush()
+}
+
+func runCandidate(cfg *config.Config, args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "Error: calendar-id is required")
+		fmt.Fprintln(os.Stderr, "Usage: lumitree candidate <calendar-id> [--year YYYY] [--month MM] [--page N]")
+		os.Exit(1)
+	}
+
+	calendarID := args[0]
+	year := time.Now().Year()
+	month := 0
+	page := 1
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--year":
+			if i+1 < len(args) {
+				if y, err := strconv.Atoi(args[i+1]); err == nil {
+					year = y
+				}
+				i++
+			}
+		case "--month":
+			if i+1 < len(args) {
+				if m, err := strconv.Atoi(args[i+1]); err == nil {
+					month = m
+				}
+				i++
+			}
+		case "--page":
+			if i+1 < len(args) {
+				if p, err := strconv.Atoi(args[i+1]); err == nil && p > 0 {
+					page = p
+				}
+				i++
+			}
+		}
+	}
+
+	client, err := timetree.NewClient(timetree.WithBaseURL(cfg.TimeTreeBaseURL))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create timetree client: %v\n", err)
+		os.Exit(1)
+	}
+	eventList, err := client.GetEvents(context.Background(), calendarID, year, month, page)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to get events: %v\n", err)
+		os.Exit(1)
+	}
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(timetree.ToEventFeed(calendarID, eventList)); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to encode event feed: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func runICS(cfg *config.Config, args []string) {
